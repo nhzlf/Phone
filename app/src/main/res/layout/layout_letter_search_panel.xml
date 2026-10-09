@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/letter_search_panel"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:background="#FFE8EAED"
     android:clickable="true"
     android:elevation="12dp"
@@ -36,23 +36,29 @@
         android:textSize="22sp"
         android:textStyle="bold" />
 
-    <org.fossify.commons.views.MyTextView
-        android:id="@+id/letter_search_placeholder"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:padding="12dp"
-        android:text="@string/letter_search_hint"
-        android:textStyle="italic"
-        android:visibility="gone" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-    <org.fossify.commons.views.MyRecyclerView
-        android:id="@+id/letter_search_list"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/letter_search_list_height"
-        android:clipToPadding="false"
-        android:scrollbars="vertical"
-        app:layoutManager="org.fossify.commons.views.MyLinearLayoutManager" />
+        <org.fossify.commons.views.MyRecyclerView
+            android:id="@+id/letter_search_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:scrollbars="vertical"
+            app:layoutManager="org.fossify.commons.views.MyLinearLayoutManager" />
+
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/letter_search_placeholder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:padding="12dp"
+            android:text="@string/letter_search_hint"
+            android:textStyle="italic"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <include
         android:id="@+id/letter_keyboard_include"
