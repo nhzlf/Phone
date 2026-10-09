@@ -643,8 +643,10 @@ class MainActivity : SimpleActivity() {
                 val snapshot = ArrayList(contacts)
                 cachedContacts.clear()
                 cachedContacts.addAll(snapshot)
-                runOnUiThread {
-                    letterSearchController?.updateContacts(snapshot)
+                RecentsHelper(this).getRecentCalls(queryLimit = 200) { recentCalls ->
+                    runOnUiThread {
+                        letterSearchController?.updateContacts(snapshot, recentCalls)
+                    }
                 }
             } catch (ignored: Exception) {
             }

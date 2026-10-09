@@ -16,6 +16,7 @@ import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.LayoutLetterSearchPanelBinding
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.models.RecentCall
 import org.fossify.phone.views.SwipeDismissLinearLayout
 import java.util.Locale
 import java.util.concurrent.Executors
@@ -103,9 +104,12 @@ class LetterSearchController(
         filterContacts()
     }
 
-    fun updateContacts(contacts: List<Contact>) {
+    fun updateContacts(
+        contacts: List<Contact>,
+        recentCalls: List<RecentCall> = emptyList()
+    ) {
         indexExecutor.execute {
-            val indexed = ContactInitialsHelper.buildSearchEntries(contacts)
+            val indexed = ContactInitialsHelper.buildSearchEntries(contacts, recentCalls)
             mainHandler.post {
                 searchIndex = indexed
                 if (isPanelVisible || query.isNotEmpty()) {
@@ -194,10 +198,16 @@ class LetterSearchController(
 
         indexExecutor.execute {
             val filtered = snapshot
-                .asSequence()
-                .filter { ContactInitialsHelper.matches(it, currentQuery) }
-                .sortedBy { ContactInitialsHelper.sortKey(it) }
-                .toList()
+                .mapNotNull { entry ->
+                    val rank = ContactInitialsHelper.matchRank(entry, currentQuery) ?: return@mapNotNull null
+                    entry to rank
+                }
+                .sortedWith(
+                    compareBy<Pair<ContactInitialsHelper.SearchEntry, ContactInitialsHelper.MatchRank>> { it.second }
+                        .thenBy { it.first.primaryInitials }
+                        .thenBy { it.first.contact.getNameToDisplay() }
+                )
+                .map { it.first }
 
             mainHandler.post {
                 if (generation != filterGeneration) {
@@ -223,16 +233,18 @@ class LetterSearchController(
         val contacts = filtered.map { it.contact }
         val suffixByRawId = HashMap<Int, String>(filtered.size)
         filtered.forEach { entry ->
-            val displayInitials = ContactInitialsHelper.getInitials(entry.contact.getNameToDisplay())
-                .ifEmpty { entry.keys.firstOrNull().orEmpty() }
-            val extraKeys = entry.keys
-                .filter { it != displayInitials }
-                .take(2)
             val suffix = buildString {
-                append(displayInitials.uppercase(Locale.US))
-                if (extraKeys.isNotEmpty()) {
+                append(entry.primaryInitials.uppercase(Locale.US))
+                val extras = entry.initialsKeys
+                    .filter { it != entry.primaryInitials }
+                    .take(2)
+                if (extras.isNotEmpty()) {
                     append(" · ")
-                    append(extraKeys.joinToString(" · "))
+                    append(extras.joinToString(" · "))
+                }
+                if (entry.pinyin.isNotEmpty()) {
+                    append(" · ")
+                    append(entry.pinyin)
                 }
             }
             suffixByRawId[entry.contact.rawId] = suffix
@@ -254,7 +266,10 @@ class LetterSearchController(
                     activity.startCallWithConfirmationCheck(it as Contact)
                 },
                 profileIconClick = {
-                    activity.startContactDetailsIntent(it as Contact)
+                    val contact = it as Contact
+                    if (contact.source != "call_log") {
+                        activity.startContactDetailsIntent(contact)
+                    }
                 },
                 nameSuffixProvider = suffixProvider
             ).also {
@@ -262,7 +277,8 @@ class LetterSearchController(
             }
         } else {
             adapter.nameSuffixProvider = suffixProvider
-            adapter.updateItems(contacts, currentQuery)
+            // Always replace items; hashCode-based updateItems can keep stale rows.
+            adapter.replaceItems(contacts, currentQuery)
         }
     }
 

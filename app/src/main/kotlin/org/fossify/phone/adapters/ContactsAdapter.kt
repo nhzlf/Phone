@@ -232,6 +232,14 @@ class ContactsAdapter(
         }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
+    fun replaceItems(newItems: List<Contact>, highlightText: String = "") {
+        contacts = ArrayList(newItems)
+        textToHighlight = highlightText
+        notifyDataSetChanged()
+        finishActMode()
+    }
+
     @SuppressLint("MissingPermission")
     private fun callContact(useSimOne: Boolean) {
         val number = getSelectedPhoneNumber() ?: return
