@@ -9,11 +9,14 @@ import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.getProperTextColor
+import org.fossify.commons.extensions.toast
 import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
 import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.LayoutLetterSearchPanelBinding
+import org.fossify.phone.extensions.callContactWithSimWithConfirmationCheck
+import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.models.RecentCall
@@ -28,9 +31,12 @@ class LetterSearchController(
 ) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val indexExecutor = Executors.newSingleThreadExecutor()
-    private var query = StringBuilder()
+    private var letterQuery = StringBuilder()
+    private var numberInput = StringBuilder()
+    private var isNumberMode = false
     private var isPanelVisible = false
     private var searchIndex: List<ContactInitialsHelper.SearchEntry> = emptyList()
+    private var currentResults: List<Contact> = emptyList()
     private var listAdapter: ContactsAdapter? = null
     private var filterGeneration = 0L
 
@@ -40,6 +46,7 @@ class LetterSearchController(
     init {
         setupKeyboard()
         setupSwipeToHide()
+        applyKeyboardMode()
         updateQueryUi()
         renderResults(emptyList(), "")
     }
@@ -69,7 +76,12 @@ class LetterSearchController(
                 .setDuration(220)
                 .start()
         }
-        filterContacts()
+        if (isNumberMode) {
+            updateQueryUi()
+            updateNumberModePlaceholder()
+        } else {
+            filterContacts()
+        }
     }
 
     fun hide(animated: Boolean = true) {
@@ -99,9 +111,17 @@ class LetterSearchController(
     }
 
     fun clearQuery() {
-        query.clear()
+        if (isNumberMode) {
+            numberInput.clear()
+        } else {
+            letterQuery.clear()
+        }
         updateQueryUi()
-        filterContacts()
+        if (isNumberMode) {
+            updateNumberModePlaceholder()
+        } else {
+            filterContacts()
+        }
     }
 
     fun updateContacts(
@@ -112,7 +132,7 @@ class LetterSearchController(
             val indexed = ContactInitialsHelper.buildSearchEntries(contacts, recentCalls)
             mainHandler.post {
                 searchIndex = indexed
-                if (isPanelVisible || query.isNotEmpty()) {
+                if (!isNumberMode && (isPanelVisible || letterQuery.isNotEmpty())) {
                     filterContacts()
                 }
             }
@@ -120,7 +140,7 @@ class LetterSearchController(
     }
 
     fun refreshResults() {
-        if (isPanelVisible) {
+        if (isPanelVisible && !isNumberMode) {
             filterContacts()
         }
     }
@@ -133,61 +153,176 @@ class LetterSearchController(
     }
 
     private fun setupKeyboard() {
-        val keyboardRoot = panelBinding.letterKeyboardInclude.root as ViewGroup
-        bindLetterKeys(keyboardRoot)
+        val keyboard = panelBinding.letterKeyboardInclude
+        bindLetterKeys(keyboard.letterKeysSection)
+        bindDigitKeys(keyboard.numberKeysSection)
 
-        panelBinding.letterKeyboardInclude.letterKeyClear.setOnClickListener {
-            clearQuery()
-        }
-        panelBinding.letterKeyboardInclude.letterKeyBackspace.setOnClickListener {
-            if (query.isNotEmpty()) {
-                query.deleteCharAt(query.lastIndex)
-                updateQueryUi()
-                filterContacts()
-            }
-        }
-        panelBinding.letterKeyboardInclude.letterKeyBackspace.setOnLongClickListener {
+        val deleteOne = View.OnClickListener { deleteOneChar() }
+        val clearAll = View.OnLongClickListener {
             clearQuery()
             true
         }
-        panelBinding.letterKeyboardInclude.letterKeySpace.setOnClickListener {
-            // ignored for initials search
+
+        listOf(
+            keyboard.letterKeyDeleteLeft,
+            keyboard.letterKeyBackspace,
+            keyboard.numberKeyDeleteLeft,
+            keyboard.numberKeyBackspace
+        ).forEach { button ->
+            button.setOnClickListener(deleteOne)
+            button.setOnLongClickListener(clearAll)
         }
-        panelBinding.letterKeyboardInclude.letterKeySearch.setOnClickListener {
-            filterContacts()
+
+        keyboard.letterKeyModeToggle.setOnClickListener {
+            isNumberMode = !isNumberMode
+            applyKeyboardMode()
+            updateQueryUi()
+            if (isNumberMode) {
+                updateNumberModePlaceholder()
+            } else {
+                filterContacts()
+            }
+        }
+
+        keyboard.letterKeySim1.setOnClickListener {
+            callWithSim(useMainSim = true)
+        }
+        keyboard.letterKeySim2.setOnClickListener {
+            callWithSim(useMainSim = false)
         }
     }
 
-    private fun bindLetterKeys(view: View) {
+    private fun applyKeyboardMode() {
+        val keyboard = panelBinding.letterKeyboardInclude
+        keyboard.letterKeysSection.beVisibleIf(!isNumberMode)
+        keyboard.numberKeysSection.beVisibleIf(isNumberMode)
+        keyboard.letterKeyModeToggle.text = if (isNumberMode) {
+            activity.getString(R.string.letter_key_mode_abc)
+        } else {
+            activity.getString(R.string.letter_key_mode_123)
+        }
+
+        panelBinding.letterSearchList.beVisibleIf(!isNumberMode && currentResults.isNotEmpty())
+    }
+
+    private fun deleteOneChar() {
+        val buffer = activeBuffer()
+        if (buffer.isNotEmpty()) {
+            buffer.deleteCharAt(buffer.lastIndex)
+            updateQueryUi()
+            if (isNumberMode) {
+                updateNumberModePlaceholder()
+            } else {
+                filterContacts()
+            }
+        }
+    }
+
+    private fun callWithSim(useMainSim: Boolean) {
+        if (isNumberMode) {
+            // Number pad: dial the digits currently entered.
+            val number = numberInput.toString().trim()
+            if (number.isEmpty()) {
+                activity.toast(R.string.letter_key_no_number_to_call)
+                return
+            }
+            activity.callContactWithSimWithConfirmationCheck(
+                recipient = number,
+                name = number,
+                useMainSIM = useMainSim
+            )
+            return
+        }
+
+        // Letter search: dial the first number in the result list.
+        val contact = currentResults.firstOrNull()
+        if (contact == null) {
+            activity.toast(R.string.letter_key_no_result_to_call)
+            return
+        }
+
+        val number = contact.getPrimaryNumber()
+            ?: contact.phoneNumbers.firstOrNull()?.normalizedNumber
+            ?: contact.phoneNumbers.firstOrNull()?.value
+        if (number.isNullOrBlank()) {
+            activity.toast(R.string.letter_key_no_result_to_call)
+            return
+        }
+
+        activity.callContactWithSimWithConfirmationCheck(
+            recipient = number,
+            name = contact.getDisplayName(),
+            useMainSIM = useMainSim
+        )
+    }
+
+    private fun bindLetterKeys(root: ViewGroup) {
+        traverseKeys(root) { view, label ->
+            if (label.length == 1 && label[0].isLetter()) {
+                view.setOnClickListener {
+                    letterQuery.append(label[0].lowercaseChar())
+                    updateQueryUi()
+                    filterContacts()
+                }
+            }
+        }
+    }
+
+    private fun bindDigitKeys(root: ViewGroup) {
+        traverseKeys(root) { view, label ->
+            if (label.length == 1 && (label[0].isDigit() || label[0] == '*' || label[0] == '#')) {
+                view.setOnClickListener {
+                    numberInput.append(label[0])
+                    updateQueryUi()
+                    updateNumberModePlaceholder()
+                }
+            }
+        }
+    }
+
+    private fun traverseKeys(view: View, onKey: (TextView, String) -> Unit) {
         when (view) {
             is TextView -> {
                 val label = view.text?.toString().orEmpty()
-                if (label.length == 1 && label[0].isLetter()) {
-                    view.setOnClickListener {
-                        query.append(label[0].lowercaseChar())
-                        updateQueryUi()
-                        filterContacts()
-                    }
+                // Skip action buttons that already have ids / dedicated handlers.
+                if (view.id == View.NO_ID) {
+                    onKey(view, label)
                 }
             }
 
             is ViewGroup -> {
                 for (i in 0 until view.childCount) {
-                    bindLetterKeys(view.getChildAt(i))
+                    traverseKeys(view.getChildAt(i), onKey)
                 }
             }
         }
+    }
+
+    private fun activeBuffer(): StringBuilder {
+        return if (isNumberMode) numberInput else letterQuery
     }
 
     private fun updateQueryUi() {
         val textColor = activity.getProperTextColor()
         panelBinding.letterSearchQuery.setTextColor(textColor)
         panelBinding.letterSearchPlaceholder.setTextColor(textColor)
-        panelBinding.letterSearchQuery.text = query.toString().uppercase(Locale.getDefault())
+        val text = activeBuffer().toString()
+        panelBinding.letterSearchQuery.text = if (isNumberMode) {
+            text
+        } else {
+            text.uppercase(Locale.getDefault())
+        }
+    }
+
+    private fun updateNumberModePlaceholder() {
+        panelBinding.letterSearchList.beGone()
+        panelBinding.letterSearchPlaceholder.beVisible()
+        panelBinding.letterSearchPlaceholder.text = activity.getString(R.string.letter_key_number_hint)
+        currentResults = emptyList()
     }
 
     private fun filterContacts() {
-        val currentQuery = query.toString()
+        val currentQuery = letterQuery.toString()
         val generation = ++filterGeneration
         val snapshot = searchIndex
 
@@ -205,12 +340,12 @@ class LetterSearchController(
                 .sortedWith(
                     compareBy<Pair<ContactInitialsHelper.SearchEntry, ContactInitialsHelper.MatchRank>> { it.second }
                         .thenBy { it.first.primaryInitials }
-                        .thenBy { it.first.contact.getNameToDisplay() }
+                        .thenBy { it.first.contact.getDisplayName() }
                 )
                 .map { it.first }
 
             mainHandler.post {
-                if (generation != filterGeneration) {
+                if (generation != filterGeneration || isNumberMode) {
                     return@post
                 }
                 renderResults(filtered, currentQuery)
@@ -222,6 +357,11 @@ class LetterSearchController(
         filtered: List<ContactInitialsHelper.SearchEntry>,
         currentQuery: String
     ) {
+        if (isNumberMode) {
+            updateNumberModePlaceholder()
+            return
+        }
+
         panelBinding.letterSearchPlaceholder.beVisibleIf(currentQuery.isEmpty() || filtered.isEmpty())
         panelBinding.letterSearchPlaceholder.text = when {
             currentQuery.isEmpty() -> activity.getString(R.string.letter_search_hint)
@@ -231,6 +371,7 @@ class LetterSearchController(
         panelBinding.letterSearchList.beVisibleIf(filtered.isNotEmpty())
 
         val contacts = filtered.map { it.contact }
+        currentResults = contacts
         val suffixByRawId = HashMap<Int, String>(filtered.size)
         filtered.forEach { entry ->
             val suffix = buildString {
@@ -277,7 +418,6 @@ class LetterSearchController(
             }
         } else {
             adapter.nameSuffixProvider = suffixProvider
-            // Always replace items; hashCode-based updateItems can keep stale rows.
             adapter.replaceItems(contacts, currentQuery)
         }
     }

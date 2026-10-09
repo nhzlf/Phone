@@ -11,6 +11,7 @@ import org.fossify.commons.helpers.MyContactsContentProvider
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.phone.R
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.extensions.isConference
 import org.fossify.phone.models.CallContact
 
@@ -60,7 +61,7 @@ fun getCallContact(context: Context, call: Call?, callback: (CallContact) -> Uni
 
                 val contact = contacts.firstOrNull { it.doesHavePhoneNumber(number) }
                 if (contact != null) {
-                    callContact.name = contact.getNameToDisplay()
+                    callContact.name = contact.getDisplayName()
                     callContact.photoUri = contact.photoUri
 
                     if (contact.phoneNumbers.size > 1) {

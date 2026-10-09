@@ -17,6 +17,7 @@ import org.fossify.phone.adapters.SpeedDialAdapter
 import org.fossify.phone.databinding.ActivityManageSpeedDialBinding
 import org.fossify.phone.dialogs.SelectContactDialog
 import org.fossify.phone.extensions.config
+import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.interfaces.RemoveSpeedDialListener
 import org.fossify.phone.models.SpeedDial
 
@@ -78,7 +79,7 @@ class ManageSpeedDialActivity : SimpleActivity(), RemoveSpeedDialListener {
                     RadioGroupDialog(this, ArrayList(radioItems), checkedItemId = checkedItemId) { selectedValue ->
                         val selectedNumber = selectedValue as PhoneNumber
                         speedDialValues.first { it.id == clickedContact.id }.apply {
-                            displayName = selectedContact.getNameToDisplay()
+                            displayName = selectedContact.getDisplayName()
                             number = selectedNumber.value
                             type = selectedNumber.type
                             label = selectedNumber.label
@@ -87,7 +88,7 @@ class ManageSpeedDialActivity : SimpleActivity(), RemoveSpeedDialListener {
                     }
                 } else {
                     speedDialValues.first { it.id == clickedContact.id }.apply {
-                        displayName = selectedContact.getNameToDisplay()
+                        displayName = selectedContact.getDisplayName()
                         number = selectedContact.phoneNumbers.first().value
                     }
                     updateAdapter()

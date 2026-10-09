@@ -13,6 +13,8 @@ import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
 import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.extensions.getAvailableSIMCardLabels
+import org.fossify.phone.extensions.getDisplayName
+import org.fossify.phone.extensions.withoutSurnameComma
 import org.fossify.phone.models.RecentCall
 import org.fossify.phone.models.SIMAccount
 
@@ -190,7 +192,7 @@ class RecentsHelper(private val context: Context) {
                     isUnknownNumber = true
                 }
 
-                var name = cursor.getStringValueOrNull(Calls.CACHED_NAME)
+                var name = cursor.getStringValueOrNull(Calls.CACHED_NAME)?.withoutSurnameComma()
                 if (name.isNullOrEmpty() || name == "-1") {
                     name = number.orEmpty()
                 }
@@ -208,7 +210,7 @@ class RecentsHelper(private val context: Context) {
                                             normalizedNumber.length - COMPARABLE_PHONE_NUMBER_LENGTH
                                         )
                                     ) {
-                                        contactsNumbersMap[number] = contact.getNameToDisplay()
+                                        contactsNumbersMap[number] = contact.getDisplayName()
                                         return@firstOrNull true
                                     }
                                 }

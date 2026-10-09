@@ -21,6 +21,16 @@
     <string name="letter_search">Letter search</string>
     <string name="letter_search_hint">Type initials to find contacts</string>
     <string name="letter_key_clear">Clear</string>
+    <string name="letter_key_delete">Delete</string>
+    <string name="letter_key_sim1">SIM 1</string>
+    <string name="letter_key_sim2">SIM 2</string>
+    <string name="letter_key_mode_123">123</string>
+    <string name="letter_key_mode_abc">abc</string>
+    <string name="letter_key_number_hint">Enter a number, then tap SIM 1 / SIM 2</string>
+    <string name="letter_key_no_result_to_call">No contact to call</string>
+    <string name="letter_key_no_number_to_call">Enter a phone number first</string>
+    <string name="letter_key_sim1_unavailable">SIM 1 is not available</string>
+    <string name="letter_key_sim2_unavailable">SIM 2 is not available</string>
     <string name="letter_key_space">Space</string>
     <string name="letter_key_search">Search</string>
     <string name="letter_key_backspace">Backspace</string>

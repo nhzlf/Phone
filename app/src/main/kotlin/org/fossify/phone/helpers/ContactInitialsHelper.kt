@@ -7,6 +7,7 @@ import net.sourceforge.pinyin4j.format.HanyuPinyinToneType
 import net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination
 import org.fossify.commons.models.PhoneNumber
 import org.fossify.commons.models.contacts.Contact
+import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.models.RecentCall
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -168,7 +169,7 @@ object ContactInitialsHelper {
     ): SearchEntry {
         // Only index person-name fields. Nickname/company caused false hits like 易投 for "ZLF".
         val sourceNames = linkedSetOf<String>().apply {
-            addIfNotBlank(contact.getNameToDisplay())
+            addIfNotBlank(contact.getDisplayName())
             addIfNotBlank(contact.firstName)
             addIfNotBlank(contact.surname)
             addIfNotBlank(contact.middleName)
@@ -199,7 +200,7 @@ object ContactInitialsHelper {
             primaryInitials = initialsKeys.firstOrNull().orEmpty()
         }
         if (pinyin.isEmpty()) {
-            pinyin = getFullPinyin(contact.getNameToDisplay())
+            pinyin = getFullPinyin(contact.getDisplayName())
         }
 
         return SearchEntry(

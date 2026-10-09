@@ -26,6 +26,7 @@ import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.FragmentContactsBinding
 import org.fossify.phone.databinding.FragmentLettersLayoutBinding
+import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.extensions.handleGenericContactClick
 import org.fossify.phone.extensions.launchCreateNewContactIntent
 import org.fossify.phone.extensions.setupWithContacts
@@ -160,7 +161,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
         val fixedText = text.trim().replace("\\s+".toRegex(), " ")
         val shouldNormalize = fixedText.normalizeString() == fixedText
         val filtered = allContacts.filter { contact ->
-            getProperText(contact.getNameToDisplay(), shouldNormalize).contains(fixedText, true) ||
+            getProperText(contact.getDisplayName(), shouldNormalize).contains(fixedText, true) ||
                 getProperText(contact.nickname, shouldNormalize).contains(fixedText, true) ||
                 (fixedText.toLongOrNull() != null && contact.doesContainPhoneNumber(fixedText, true)) ||
                 contact.emails.any { it.value.contains(fixedText, true) } ||
@@ -173,7 +174,7 @@ class ContactsFragment(context: Context, attributeSet: AttributeSet) : MyViewPag
         } as ArrayList
 
         filtered.sortBy {
-            val nameToDisplay = it.getNameToDisplay()
+            val nameToDisplay = it.getDisplayName()
             !getProperText(nameToDisplay, shouldNormalize).startsWith(fixedText, true) && !nameToDisplay.contains(fixedText, true)
         }
 

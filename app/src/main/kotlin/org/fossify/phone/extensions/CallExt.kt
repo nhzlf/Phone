@@ -16,12 +16,14 @@ import org.fossify.commons.extensions.launchCallIntent
 import org.fossify.commons.extensions.openFullScreenIntentSettings
 import org.fossify.commons.extensions.openNotificationSettings
 import org.fossify.commons.extensions.telecomManager
+import org.fossify.commons.extensions.toast
 import org.fossify.commons.helpers.PERMISSION_READ_PHONE_STATE
 import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.BuildConfig
 import org.fossify.phone.activities.DialerActivity
 import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.dialogs.SelectSIMDialog
+// getDisplayName is in the same package
 
 fun SimpleActivity.startCallIntent(
     recipient: String,
@@ -58,7 +60,7 @@ fun SimpleActivity.startCallWithConfirmationCheck(contact: Contact) {
     if (config.showCallConfirmation) {
         CallConfirmationDialog(
             activity = this,
-            callee = contact.getNameToDisplay()
+            callee = contact.getDisplayName()
         ) {
             initiateCall(contact) { launchCallIntent(it) }
         }
@@ -72,10 +74,19 @@ fun BaseSimpleActivity.callContactWithSim(
     useMainSIM: Boolean
 ) {
     handlePermission(PERMISSION_READ_PHONE_STATE) {
+        val sims = getAvailableSIMCardLabels().sortedBy { it.id }
         val wantedSimIndex = if (useMainSIM) 0 else 1
-        val handle = getAvailableSIMCardLabels()
-            .sortedBy { it.id }
-            .getOrNull(wantedSimIndex)?.handle
+        val handle = sims.getOrNull(wantedSimIndex)?.handle
+        if (handle == null) {
+            toast(
+                if (useMainSIM) {
+                    org.fossify.phone.R.string.letter_key_sim1_unavailable
+                } else {
+                    org.fossify.phone.R.string.letter_key_sim2_unavailable
+                }
+            )
+            return@handlePermission
+        }
         launchCallIntent(recipient, handle)
     }
 }

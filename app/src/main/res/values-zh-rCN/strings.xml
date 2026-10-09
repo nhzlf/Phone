@@ -14,6 +14,16 @@
     <string name="letter_search">字母搜索</string>
     <string name="letter_search_hint">输入姓名首字母查找联系人</string>
     <string name="letter_key_clear">清空</string>
+    <string name="letter_key_delete">删除</string>
+    <string name="letter_key_sim1">卡1</string>
+    <string name="letter_key_sim2">卡2</string>
+    <string name="letter_key_mode_123">123</string>
+    <string name="letter_key_mode_abc">abc</string>
+    <string name="letter_key_number_hint">输入号码后按卡1 / 卡2拨打</string>
+    <string name="letter_key_no_result_to_call">没有可拨打的联系人</string>
+    <string name="letter_key_no_number_to_call">请先输入电话号码</string>
+    <string name="letter_key_sim1_unavailable">卡1不可用</string>
+    <string name="letter_key_sim2_unavailable">卡2不可用</string>
     <string name="letter_key_space">空格</string>
     <string name="letter_key_search">搜索</string>
     <string name="letter_key_backspace">退格</string>

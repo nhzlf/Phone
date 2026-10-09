@@ -20,4 +20,5 @@
     <dimen name="dialpad_letters_text_size">12dp</dimen>
 
     <dimen name="letter_search_fab_margin_bottom">96dp</dimen>
+    <dimen name="letter_key_row_height">58dp</dimen>
 </resources>
