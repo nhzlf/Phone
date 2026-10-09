@@ -136,4 +136,8 @@ class Config(context: Context) : BaseConfig(context) {
     var alwaysShowFullscreen: Boolean
         get() = prefs.getBoolean(ALWAYS_SHOW_FULLSCREEN, false)
         set(alwaysShowFullscreen) = prefs.edit().putBoolean(ALWAYS_SHOW_FULLSCREEN, alwaysShowFullscreen).apply()
+
+    var localContactsSeeded: Boolean
+        get() = prefs.getBoolean(LOCAL_CONTACTS_SEEDED, false)
+        set(localContactsSeeded) = prefs.edit().putBoolean(LOCAL_CONTACTS_SEEDED, localContactsSeeded).apply()
 }

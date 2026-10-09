@@ -7,6 +7,7 @@ import net.sourceforge.pinyin4j.format.HanyuPinyinToneType
 import net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination
 import org.fossify.commons.models.PhoneNumber
 import org.fossify.commons.models.contacts.Contact
+import org.fossify.phone.data.LocalContact
 import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.models.RecentCall
 import java.util.Locale
@@ -95,6 +96,26 @@ object ContactInitialsHelper {
         }
 
         return entries
+    }
+
+    fun buildSearchEntriesFromLocal(contacts: List<LocalContact>): List<SearchEntry> {
+        return contacts.map { local ->
+            val keys = linkedSetOf<String>()
+            if (local.initials.isNotEmpty()) {
+                keys.add(local.initials)
+            }
+            val computed = getInitials(local.displayName)
+            if (computed.isNotEmpty()) {
+                keys.add(computed)
+            }
+            keys.addAll(getInitialVariants(local.displayName))
+            SearchEntry(
+                contact = local.toCommonsContact(),
+                primaryInitials = local.initials.ifEmpty { computed },
+                initialsKeys = keys.filter { it.isNotEmpty() },
+                pinyin = local.pinyin.ifEmpty { getFullPinyin(local.displayName) }
+            )
+        }
     }
 
     fun matchRank(entry: SearchEntry, query: String): MatchRank? {

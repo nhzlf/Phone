@@ -9,6 +9,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.fossify.commons.activities.ManageBlockedNumbersActivity
 import org.fossify.commons.dialogs.ChangeDateTimeFormatDialog
+import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.dialogs.RadioGroupDialog
 import org.fossify.commons.extensions.baseConfig
 import org.fossify.commons.extensions.beVisibleIf
@@ -37,6 +38,7 @@ import org.fossify.phone.R
 import org.fossify.phone.databinding.ActivitySettingsBinding
 import org.fossify.phone.dialogs.ExportCallHistoryDialog
 import org.fossify.phone.dialogs.ManageVisibleTabsDialog
+import org.fossify.phone.data.ContactRepository
 import org.fossify.phone.extensions.canLaunchAccountsConfiguration
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.launchAccountsConfiguration
@@ -112,6 +114,7 @@ class SettingsActivity : SimpleActivity() {
         setupDisableProximitySensor()
         setupDisableSwipeToAnswer()
         setupAlwaysShowFullscreen()
+        setupImportLocalContacts()
         setupCallsExport()
         setupCallsImport()
         updateTextColors(binding.settingsHolder)
@@ -388,6 +391,23 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsExportCallsHolder.setOnClickListener {
             ExportCallHistoryDialog(this) { filename ->
                 saveDocument.launch("$filename.json")
+            }
+        }
+    }
+
+    private fun setupImportLocalContacts() {
+        val count = ContactRepository.getInstance(this).count()
+        binding.settingsImportLocalContacts.text =
+            "${getString(R.string.import_local_contacts)} ($count)"
+        binding.settingsImportLocalContactsHolder.setOnClickListener {
+            ConfirmationDialog(this, getString(R.string.import_local_contacts_confirmation)) {
+                toast(R.string.importing)
+                ContactRepository.getInstance(this).importFromSystem { imported ->
+                    runOnUiThread {
+                        toast(getString(R.string.import_local_contacts_done, imported))
+                        setupImportLocalContacts()
+                    }
+                }
             }
         }
     }

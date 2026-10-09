@@ -17,6 +17,7 @@ indicatorFastScroll = "c7873f7168"
 autofitTextView = "0.2.1"
 libphonenumberVersion = "9.0.40"
 pinyin4j = "2.5.1"
+#Room (optional future); local DB uses SQLiteOpenHelper for now
 #build
 app-build-compileSDKVersion = "36"
 app-build-targetSDK = "36"

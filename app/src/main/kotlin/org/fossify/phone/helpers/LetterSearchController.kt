@@ -17,9 +17,10 @@ import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.LayoutLetterSearchPanelBinding
 import org.fossify.phone.extensions.callContactWithSimWithConfirmationCheck
 import org.fossify.phone.extensions.getDisplayName
+import org.fossify.phone.data.LocalContact
+import org.fossify.phone.data.LocalContact.Companion.SOURCE_LOCAL_DB
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
-import org.fossify.phone.models.RecentCall
 import org.fossify.phone.views.SwipeDismissLinearLayout
 import java.util.Locale
 import java.util.concurrent.Executors
@@ -124,12 +125,9 @@ class LetterSearchController(
         }
     }
 
-    fun updateContacts(
-        contacts: List<Contact>,
-        recentCalls: List<RecentCall> = emptyList()
-    ) {
+    fun updateLocalContacts(contacts: List<LocalContact>) {
         indexExecutor.execute {
-            val indexed = ContactInitialsHelper.buildSearchEntries(contacts, recentCalls)
+            val indexed = ContactInitialsHelper.buildSearchEntriesFromLocal(contacts)
             mainHandler.post {
                 searchIndex = indexed
                 if (!isNumberMode && (isPanelVisible || letterQuery.isNotEmpty())) {
@@ -408,7 +406,7 @@ class LetterSearchController(
                 },
                 profileIconClick = {
                     val contact = it as Contact
-                    if (contact.source != "call_log") {
+                    if (contact.source != "call_log" && contact.source != SOURCE_LOCAL_DB) {
                         activity.startContactDetailsIntent(contact)
                     }
                 },

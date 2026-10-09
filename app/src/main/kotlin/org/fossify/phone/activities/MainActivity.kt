@@ -40,6 +40,7 @@ import org.fossify.phone.fragments.ContactsFragment
 import org.fossify.phone.fragments.FavoritesFragment
 import org.fossify.phone.fragments.MyViewPagerFragment
 import org.fossify.phone.fragments.RecentsFragment
+import org.fossify.phone.data.ContactRepository
 import org.fossify.phone.helpers.LetterSearchController
 import org.fossify.phone.helpers.OPEN_DIAL_PAD_AT_LAUNCH
 import org.fossify.phone.helpers.RecentsHelper
@@ -629,24 +630,13 @@ class MainActivity : SimpleActivity() {
     }
 
     fun cacheContacts() {
-        val privateCursor = getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true)
-        ContactsHelper(this).getContacts(getAll = true, showOnlyContactsWithNumbers = true) { contacts ->
-            if (SMT_PRIVATE !in config.ignoredContactSources) {
-                val privateContacts = MyContactsContentProvider.getContacts(this, privateCursor)
-                if (privateContacts.isNotEmpty()) {
-                    contacts.addAll(privateContacts)
-                    contacts.sort()
-                }
-            }
-
+        ContactRepository.getInstance(this).loadForApp { localContacts ->
             try {
-                val snapshot = ArrayList(contacts)
+                val snapshot = ArrayList(localContacts.map { it.toCommonsContact() })
                 cachedContacts.clear()
                 cachedContacts.addAll(snapshot)
-                RecentsHelper(this).getRecentCalls(queryLimit = 200) { recentCalls ->
-                    runOnUiThread {
-                        letterSearchController?.updateContacts(snapshot, recentCalls)
-                    }
+                runOnUiThread {
+                    letterSearchController?.updateLocalContacts(localContacts)
                 }
             } catch (ignored: Exception) {
             }
