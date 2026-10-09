@@ -47,7 +47,8 @@ class ContactsAdapter(
     private val enableDrag: Boolean = false,
     private val allowLongClick: Boolean = true,
     itemClick: (Any) -> Unit,
-    val profileIconClick: ((Any) -> Unit)? = null
+    val profileIconClick: ((Any) -> Unit)? = null,
+    var nameSuffixProvider: ((Contact) -> String)? = null
 ) : MyRecyclerViewAdapter(activity, recyclerView, itemClick),
     ItemTouchHelperContract, MyRecyclerView.MyZoomListener {
 
@@ -375,13 +376,18 @@ class ContactsAdapter(
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize)
 
                 val name = contact.getNameToDisplay()
+                val suffix = nameSuffixProvider?.invoke(contact)
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { "  [$it]" }
+                    .orEmpty()
+                val displayName = name + suffix
                 text = if (textToHighlight.isEmpty()) {
-                    name
+                    displayName
                 } else {
                     val normalizedName = name.normalizeString()
                     val normalizedSearchText = textToHighlight.normalizeString()
                     if (normalizedName.contains(normalizedSearchText, true)) {
-                        name.highlightTextPart(normalizedSearchText, properPrimaryColor)
+                        displayName.highlightTextPart(normalizedSearchText, properPrimaryColor)
                     } else {
                         var spacedTextToHighlight = textToHighlight
                         val strippedName = name.filterNot { it.isWhitespace() }
@@ -396,7 +402,7 @@ class ContactsAdapter(
                             }
                         }
 
-                        name.highlightTextFromNumbers(spacedTextToHighlight, properPrimaryColor)
+                        displayName.highlightTextFromNumbers(spacedTextToHighlight, properPrimaryColor)
                     }
                 }
             }

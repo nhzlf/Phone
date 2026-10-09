@@ -197,7 +197,6 @@ class LetterSearchController(
                 .asSequence()
                 .filter { ContactInitialsHelper.matches(it, currentQuery) }
                 .sortedBy { ContactInitialsHelper.sortKey(it) }
-                .map { it.contact }
                 .toList()
 
             mainHandler.post {
@@ -209,7 +208,10 @@ class LetterSearchController(
         }
     }
 
-    private fun renderResults(filtered: List<Contact>, currentQuery: String) {
+    private fun renderResults(
+        filtered: List<ContactInitialsHelper.SearchEntry>,
+        currentQuery: String
+    ) {
         panelBinding.letterSearchPlaceholder.beVisibleIf(currentQuery.isEmpty() || filtered.isEmpty())
         panelBinding.letterSearchPlaceholder.text = when {
             currentQuery.isEmpty() -> activity.getString(R.string.letter_search_hint)
@@ -218,11 +220,33 @@ class LetterSearchController(
         }
         panelBinding.letterSearchList.beVisibleIf(filtered.isNotEmpty())
 
+        val contacts = filtered.map { it.contact }
+        val suffixByRawId = HashMap<Int, String>(filtered.size)
+        filtered.forEach { entry ->
+            val displayInitials = ContactInitialsHelper.getInitials(entry.contact.getNameToDisplay())
+                .ifEmpty { entry.keys.firstOrNull().orEmpty() }
+            val extraKeys = entry.keys
+                .filter { it != displayInitials }
+                .take(2)
+            val suffix = buildString {
+                append(displayInitials.uppercase(Locale.US))
+                if (extraKeys.isNotEmpty()) {
+                    append(" · ")
+                    append(extraKeys.joinToString(" · "))
+                }
+            }
+            suffixByRawId[entry.contact.rawId] = suffix
+        }
+
+        val suffixProvider: (Contact) -> String = { contact ->
+            suffixByRawId[contact.rawId].orEmpty()
+        }
+
         val adapter = listAdapter
         if (adapter == null) {
             listAdapter = ContactsAdapter(
                 activity = activity,
-                contacts = ArrayList(filtered),
+                contacts = ArrayList(contacts),
                 recyclerView = panelBinding.letterSearchList,
                 highlightText = currentQuery,
                 allowLongClick = false,
@@ -231,12 +255,14 @@ class LetterSearchController(
                 },
                 profileIconClick = {
                     activity.startContactDetailsIntent(it as Contact)
-                }
+                },
+                nameSuffixProvider = suffixProvider
             ).also {
                 panelBinding.letterSearchList.adapter = it
             }
         } else {
-            adapter.updateItems(filtered, currentQuery)
+            adapter.nameSuffixProvider = suffixProvider
+            adapter.updateItems(contacts, currentQuery)
         }
     }
 
