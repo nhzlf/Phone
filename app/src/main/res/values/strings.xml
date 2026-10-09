@@ -17,6 +17,15 @@
     <string name="clear_call_history">Clear call history</string>
     <string name="show_call_details">Show call details</string>
 
+    <!-- Letter search -->
+    <string name="letter_search">Letter search</string>
+    <string name="letter_search_hint">Type initials to find contacts</string>
+    <string name="letter_key_clear">Clear</string>
+    <string name="letter_key_space">Space</string>
+    <string name="letter_key_search">Search</string>
+    <string name="letter_key_backspace">Backspace</string>
+    <string name="no_contacts_match_initials">No contacts match these initials</string>
+
     <!-- Dialpad -->
     <string name="dialpad">Dialpad</string>
     <string name="asterisk">Asterisk</string>

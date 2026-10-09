@@ -40,6 +40,7 @@ import org.fossify.phone.fragments.ContactsFragment
 import org.fossify.phone.fragments.FavoritesFragment
 import org.fossify.phone.fragments.MyViewPagerFragment
 import org.fossify.phone.fragments.RecentsFragment
+import org.fossify.phone.helpers.LetterSearchController
 import org.fossify.phone.helpers.OPEN_DIAL_PAD_AT_LAUNCH
 import org.fossify.phone.helpers.RecentsHelper
 import org.fossify.phone.helpers.tabsList
@@ -57,18 +58,22 @@ class MainActivity : SimpleActivity() {
     private var storedShowTabs = 0
     private var storedFontSize = 0
     private var storedStartNameWithSurname = false
+    private var letterSearchController: LetterSearchController? = null
     var cachedContacts = ArrayList<Contact>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         appLaunched(BuildConfig.APPLICATION_ID)
+        // Custom main UI: call history only + letter search panel.
+        config.showTabs = TAB_CALL_HISTORY
         setupOptionsMenu()
         refreshMenuItems()
-        setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.mainTabsHolder))
+        setupEdgeToEdge(padBottomImeAndSystem = listOf(binding.mainHolder))
 
         EventBus.getDefault().register(this)
         launchedDialer = savedInstanceState?.getBoolean(OPEN_DIAL_PAD_AT_LAUNCH) ?: false
+        setupLetterSearch()
 
         if (isDefaultDialer()) {
             checkContactPermissions()
@@ -116,8 +121,8 @@ class MainActivity : SimpleActivity() {
 
         updateMenuColors()
         val properPrimaryColor = getProperPrimaryColor()
-        val dialpadIcon = resources.getColoredDrawableWithColor(R.drawable.ic_dialpad_vector, properPrimaryColor.getContrastColor())
-        binding.mainDialpadButton.setImageDrawable(dialpadIcon)
+        val searchIcon = resources.getColoredDrawableWithColor(R.drawable.ic_search_vector, properPrimaryColor.getContrastColor())
+        binding.mainDialpadButton.setImageDrawable(searchIcon)
 
         updateTextColors(binding.mainHolder)
         setupTabColors()
@@ -180,11 +185,18 @@ class MainActivity : SimpleActivity() {
     }
 
     override fun onBackPressedCompat(): Boolean {
-        return if (binding.mainMenu.isSearchOpen) {
-            binding.mainMenu.closeSearch()
-            true
-        } else {
-            false
+        return when {
+            letterSearchController?.isVisible == true -> {
+                letterSearchController?.hide()
+                true
+            }
+
+            binding.mainMenu.isSearchOpen -> {
+                binding.mainMenu.closeSearch()
+                true
+            }
+
+            else -> false
         }
     }
 
@@ -400,7 +412,7 @@ class MainActivity : SimpleActivity() {
         }
 
         binding.mainDialpadButton.setOnClickListener {
-            launchDialpad()
+            letterSearchController?.toggle()
         }
 
         binding.viewPager.onGlobalLayout {
@@ -408,9 +420,17 @@ class MainActivity : SimpleActivity() {
         }
 
         if (config.openDialPadAtLaunch && !launchedDialer) {
-            launchDialpad()
+            letterSearchController?.show()
             launchedDialer = true
         }
+    }
+
+    private fun setupLetterSearch() {
+        letterSearchController = LetterSearchController(
+            activity = this,
+            panelBinding = binding.letterSearchPanelInclude,
+            contactsProvider = { cachedContacts }
+        )
     }
 
     private fun setupTabs() {
@@ -483,12 +503,6 @@ class MainActivity : SimpleActivity() {
             } else {
                 refreshFragments()
             }
-        }
-    }
-
-    private fun launchDialpad() {
-        Intent(applicationContext, DialpadActivity::class.java).apply {
-            startActivity(this)
         }
     }
 
@@ -629,6 +643,9 @@ class MainActivity : SimpleActivity() {
             try {
                 cachedContacts.clear()
                 cachedContacts.addAll(contacts)
+                runOnUiThread {
+                    letterSearchController?.refreshResults()
+                }
             } catch (ignored: Exception) {
             }
         }

@@ -8,6 +8,7 @@ import android.telephony.TelephonyManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.fossify.commons.helpers.BaseConfig
+import org.fossify.commons.helpers.TAB_CALL_HISTORY
 import org.fossify.phone.extensions.getPhoneAccountHandleModel
 import org.fossify.phone.extensions.putPhoneAccountHandle
 import org.fossify.phone.models.SpeedDial
@@ -97,7 +98,7 @@ class Config(context: Context) : BaseConfig(context) {
     }
 
     var showTabs: Int
-        get() = prefs.getInt(SHOW_TABS, ALL_TABS_MASK)
+        get() = prefs.getInt(SHOW_TABS, TAB_CALL_HISTORY)
         set(showTabs) = prefs.edit().putInt(SHOW_TABS, showTabs).apply()
 
     var groupSubsequentCalls: Boolean

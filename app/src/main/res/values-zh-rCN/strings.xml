@@ -11,6 +11,13 @@
     <string name="show_grouped_calls">显示分组呼叫</string>
     <string name="clear_call_history">清除通话记录</string>
     <string name="show_call_details">显示通话详情</string>
+    <string name="letter_search">字母搜索</string>
+    <string name="letter_search_hint">输入姓名首字母查找联系人</string>
+    <string name="letter_key_clear">清空</string>
+    <string name="letter_key_space">空格</string>
+    <string name="letter_key_search">搜索</string>
+    <string name="letter_key_backspace">退格</string>
+    <string name="no_contacts_match_initials">没有匹配这些首字母的联系人</string>
     <string name="dialpad">拨号键盘</string>
     <string name="asterisk">星号键</string>
     <string name="hashtag">标签</string>

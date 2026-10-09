@@ -22,33 +22,40 @@
             android:id="@+id/view_pager"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            app:layout_constraintBottom_toTopOf="@+id/main_tabs_holder"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
-
-        <org.fossify.commons.views.MyFloatingActionButton
-            android:id="@+id/main_dialpad_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_marginEnd="@dimen/bigger_margin"
-            android:layout_marginBottom="@dimen/activity_margin"
-            android:contentDescription="@string/dialpad"
-            android:elevation="@dimen/medium_margin"
-            android:padding="@dimen/activity_margin"
-            android:src="@drawable/ic_dialpad_vector"
-            app:backgroundTint="@color/color_primary"
-            app:layout_constraintBottom_toTopOf="@+id/main_tabs_holder"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:rippleColor="@color/pressed_item_foreground" />
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/main_tabs_holder"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:tabIndicator="@null"
             app:tabMinWidth="150dp"
             app:tabRippleColor="@null" />
+
+        <include
+            android:id="@+id/letter_search_panel_include"
+            layout="@layout/layout_letter_search_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <org.fossify.commons.views.MyFloatingActionButton
+            android:id="@+id/main_dialpad_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/bigger_margin"
+            android:layout_marginBottom="@dimen/letter_search_fab_margin_bottom"
+            android:contentDescription="@string/letter_search"
+            android:elevation="@dimen/medium_margin"
+            android:padding="@dimen/activity_margin"
+            android:src="@drawable/ic_search_vector"
+            app:backgroundTint="@color/color_primary"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:rippleColor="@color/pressed_item_foreground" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
