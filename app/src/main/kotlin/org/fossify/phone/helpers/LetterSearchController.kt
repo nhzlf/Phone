@@ -145,7 +145,7 @@ class LetterSearchController(
                 val label = view.text?.toString().orEmpty()
                 if (label.length == 1 && label[0].isLetter()) {
                     view.setOnClickListener {
-                        query.append(label.lowercaseChar())
+                        query.append(label[0].lowercaseChar())
                         updateQueryUi()
                         filterContacts()
                     }
