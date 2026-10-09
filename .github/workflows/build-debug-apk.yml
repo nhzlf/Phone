@@ -16,6 +16,11 @@ jobs:
     name: Build FossifyPhone (foss/debug)
     runs-on: ubuntu-latest
 
+    env:
+      # ubuntu-latest 已经预装了 Android SDK，直接用它
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -27,15 +32,31 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Setup Android SDK (cmdline-tools + platform-36)
-        uses: android-actions/setup-android@v3
-        with:
-          api-level: 34
-          build-tools: '34.0.0'
-
-      - name: Install missing Android SDK components
+      - name: Install Android cmdline-tools & SDK components
         run: |
-          yes | sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools" || true
+          set -e
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd "$ANDROID_HOME/cmdline-tools"
+
+          # 下载官方 cmdline-tools (固定版本，避免 latest 版本带来的不一致)
+          CMDLINE_URL="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          curl -fL "$CMDLINE_URL" -o cmdtools.zip
+          unzip -q cmdtools.zip
+          mv cmdline-tools latest
+          rm cmdtools.zip
+
+          # 把 sdkmanager 加进 PATH
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+
+          # 关键：先接受所有 license，避免 sdkmanager 因为没接受 license 退出码 1
+          yes | sdkmanager --licenses >/dev/null || true
+
+          # 安装需要的平台和构建工具（AGP 8.x 需要 platform-36）
+          sdkmanager "platform-tools" \
+                     "platforms;android-36" \
+                     "build-tools;36.0.0" \
+                     "platforms;android-34"
 
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
@@ -52,7 +73,11 @@ jobs:
           fi
 
       - name: Build Debug APK (foss flavor)
-        run: ./gradlew :app:assembleFossDebug --no-daemon --stacktrace
+        run: |
+          export ANDROID_HOME="$ANDROID_HOME"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          ./gradlew :app:assembleFossDebug --no-daemon --stacktrace
 
       - name: Rename APK with commit SHA
         id: rename
