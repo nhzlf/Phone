@@ -144,6 +144,6 @@ dependencies {
     implementation(libs.eventbus)
     implementation(libs.libphonenumber)
     implementation(libs.geocoder)
-    implementation(libs.tinypinyin)
+    implementation(libs.pinyin4j)
     detektPlugins(libs.compose.detekt)
 }

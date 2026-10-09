@@ -1,20 +1,29 @@
 package org.fossify.phone.helpers
 
-import com.github.promeg.pinyinhelper.Pinyin
+import net.sourceforge.pinyin4j.PinyinHelper
+import net.sourceforge.pinyin4j.format.HanyuPinyinCaseType
+import net.sourceforge.pinyin4j.format.HanyuPinyinOutputFormat
+import net.sourceforge.pinyin4j.format.HanyuPinyinToneType
+import net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination
 import java.util.Locale
 
 object ContactInitialsHelper {
+
+    private val pinyinFormat = HanyuPinyinOutputFormat().apply {
+        caseType = HanyuPinyinCaseType.LOWERCASE
+        toneType = HanyuPinyinToneType.WITHOUT_TONE
+    }
 
     fun getInitials(name: String): String {
         val result = StringBuilder()
         var expectingWordStart = true
 
         name.forEach { char ->
+            val pinyin = toPinyin(char)
             when {
-                Pinyin.isChinese(char) -> {
-                    val pinyin = Pinyin.toPinyin(char)
+                pinyin != null -> {
                     if (pinyin.isNotEmpty()) {
-                        result.append(pinyin.first().lowercaseChar())
+                        result.append(pinyin.first())
                     }
                     expectingWordStart = true
                 }
@@ -36,11 +45,9 @@ object ContactInitialsHelper {
     fun getFullPinyin(name: String): String {
         val result = StringBuilder()
         name.forEach { char ->
+            val pinyin = toPinyin(char)
             when {
-                Pinyin.isChinese(char) -> {
-                    result.append(Pinyin.toPinyin(char).lowercase(Locale.US))
-                }
-
+                pinyin != null -> result.append(pinyin)
                 char.isLetterOrDigit() -> result.append(char.lowercaseChar())
             }
         }
@@ -58,5 +65,17 @@ object ContactInitialsHelper {
         return initials.startsWith(normalizedQuery) ||
             pinyin.startsWith(normalizedQuery) ||
             initials.contains(normalizedQuery)
+    }
+
+    private fun toPinyin(char: Char): String? {
+        if (Character.UnicodeScript.of(char.toInt()) != Character.UnicodeScript.HAN) {
+            return null
+        }
+
+        return try {
+            PinyinHelper.toHanyuPinyinStringArray(char, pinyinFormat)?.firstOrNull()
+        } catch (_: BadHanyuPinyinOutputFormatCombination) {
+            null
+        }
     }
 }
