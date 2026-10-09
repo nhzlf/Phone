@@ -40,9 +40,13 @@ class LetterSearchController(
     private var currentResults: List<Contact> = emptyList()
     private var listAdapter: ContactsAdapter? = null
     private var filterGeneration = 0L
+    private var systemImeMode = false
 
     val isVisible: Boolean
         get() = isPanelVisible
+
+    val isUsingSystemIme: Boolean
+        get() = systemImeMode
 
     init {
         setupKeyboard()
@@ -77,6 +81,9 @@ class LetterSearchController(
                 .setDuration(220)
                 .start()
         }
+        systemImeMode = false
+        panelBinding.letterKeyboardInclude.root.beVisible()
+        applyKeyboardMode()
         if (isNumberMode) {
             updateQueryUi()
             updateNumberModePlaceholder()
@@ -91,6 +98,7 @@ class LetterSearchController(
         }
 
         isPanelVisible = false
+        systemImeMode = false
         val panel = panelBinding.root
         panel.animate().cancel()
         if (!animated) {
@@ -109,6 +117,46 @@ class LetterSearchController(
                 panel.beGone()
             }
             .start()
+    }
+
+    /** Top yellow search bar focused: use system IME, hide app letter keyboard. */
+    fun enterSystemImeMode() {
+        if (!isPanelVisible) {
+            return
+        }
+        systemImeMode = true
+        if (isNumberMode) {
+            isNumberMode = false
+        }
+        panelBinding.letterKeyboardInclude.root.beGone()
+        updateQueryUi()
+        filterContacts()
+    }
+
+    /** Top search closed: restore app letter/number keyboard. */
+    fun exitSystemImeMode() {
+        systemImeMode = false
+        if (!isPanelVisible) {
+            return
+        }
+        panelBinding.letterKeyboardInclude.root.beVisible()
+        applyKeyboardMode()
+        updateQueryUi()
+        filterContacts()
+    }
+
+    /** Query from system IME (top search box). Supports initials and Chinese name text. */
+    fun setExternalQuery(text: String) {
+        if (isNumberMode) {
+            isNumberMode = false
+            if (!systemImeMode) {
+                applyKeyboardMode()
+            }
+        }
+        letterQuery.setLength(0)
+        letterQuery.append(text)
+        updateQueryUi()
+        filterContacts()
     }
 
     fun clearQuery() {
@@ -130,7 +178,7 @@ class LetterSearchController(
             val indexed = ContactInitialsHelper.buildSearchEntriesFromLocal(contacts)
             mainHandler.post {
                 searchIndex = indexed
-                if (!isNumberMode && (isPanelVisible || letterQuery.isNotEmpty())) {
+                if (!isNumberMode && isPanelVisible) {
                     filterContacts()
                 }
             }
@@ -192,6 +240,13 @@ class LetterSearchController(
 
     private fun applyKeyboardMode() {
         val keyboard = panelBinding.letterKeyboardInclude
+        if (systemImeMode) {
+            keyboard.root.beGone()
+            panelBinding.letterSearchList.beVisibleIf(currentResults.isNotEmpty())
+            return
+        }
+
+        keyboard.root.beVisible()
         keyboard.letterKeysSection.beVisibleIf(!isNumberMode)
         keyboard.numberKeysSection.beVisibleIf(isNumberMode)
         keyboard.letterKeyModeToggle.text = if (isNumberMode) {
@@ -305,10 +360,11 @@ class LetterSearchController(
         panelBinding.letterSearchQuery.setTextColor(textColor)
         panelBinding.letterSearchPlaceholder.setTextColor(textColor)
         val text = activeBuffer().toString()
-        panelBinding.letterSearchQuery.text = if (isNumberMode) {
-            text
-        } else {
-            text.uppercase(Locale.getDefault())
+        panelBinding.letterSearchQuery.text = when {
+            isNumberMode -> text
+            // System IME / Chinese text: keep as typed; letter keys: show uppercase initials.
+            systemImeMode || text.any { !it.isLetter() || Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN } -> text
+            else -> text.uppercase(Locale.getDefault())
         }
     }
 
@@ -320,27 +376,30 @@ class LetterSearchController(
     }
 
     private fun filterContacts() {
-        val currentQuery = letterQuery.toString()
+        val currentQuery = letterQuery.toString().trim()
         val generation = ++filterGeneration
         val snapshot = searchIndex
 
-        if (currentQuery.isEmpty()) {
-            renderResults(emptyList(), currentQuery)
-            return
-        }
-
         indexExecutor.execute {
-            val filtered = snapshot
-                .mapNotNull { entry ->
-                    val rank = ContactInitialsHelper.matchRank(entry, currentQuery) ?: return@mapNotNull null
-                    entry to rank
-                }
-                .sortedWith(
-                    compareBy<Pair<ContactInitialsHelper.SearchEntry, ContactInitialsHelper.MatchRank>> { it.second }
-                        .thenBy { it.first.primaryInitials }
-                        .thenBy { it.first.contact.getDisplayName() }
+            val filtered = if (currentQuery.isEmpty()) {
+                // Entering search: show everyone from local DB.
+                snapshot.sortedWith(
+                    compareBy<ContactInitialsHelper.SearchEntry> { it.primaryInitials.lowercase(Locale.US) }
+                        .thenBy { it.contact.getDisplayName() }
                 )
-                .map { it.first }
+            } else {
+                snapshot
+                    .mapNotNull { entry ->
+                        val rank = ContactInitialsHelper.matchRank(entry, currentQuery) ?: return@mapNotNull null
+                        entry to rank
+                    }
+                    .sortedWith(
+                        compareBy<Pair<ContactInitialsHelper.SearchEntry, ContactInitialsHelper.MatchRank>> { it.second }
+                            .thenBy { it.first.primaryInitials }
+                            .thenBy { it.first.contact.getDisplayName() }
+                    )
+                    .map { it.first }
+            }
 
             mainHandler.post {
                 if (generation != filterGeneration || isNumberMode) {
@@ -360,11 +419,11 @@ class LetterSearchController(
             return
         }
 
-        panelBinding.letterSearchPlaceholder.beVisibleIf(currentQuery.isEmpty() || filtered.isEmpty())
+        panelBinding.letterSearchPlaceholder.beVisibleIf(filtered.isEmpty())
         panelBinding.letterSearchPlaceholder.text = when {
-            currentQuery.isEmpty() -> activity.getString(R.string.letter_search_hint)
             searchIndex.isEmpty() -> activity.getString(R.string.letter_search_indexing)
-            else -> activity.getString(R.string.no_contacts_match_initials)
+            currentQuery.isNotEmpty() -> activity.getString(R.string.no_contacts_match_initials)
+            else -> activity.getString(R.string.letter_search_hint)
         }
         panelBinding.letterSearchList.beVisibleIf(filtered.isNotEmpty())
 

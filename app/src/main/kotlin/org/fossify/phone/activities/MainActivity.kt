@@ -225,14 +225,27 @@ class MainActivity : SimpleActivity() {
             toggleHideOnScroll(false)
             setupMenu()
 
+            onSearchOpenListener = {
+                if (letterSearchController?.isVisible == true) {
+                    letterSearchController?.enterSystemImeMode()
+                }
+            }
+
             onSearchClosedListener = {
                 getAllFragments().forEach {
                     it?.onSearchQueryChanged("")
                 }
+                if (letterSearchController?.isVisible == true) {
+                    letterSearchController?.exitSystemImeMode()
+                }
             }
 
             onSearchTextChangedListener = { text ->
-                getCurrentFragment()?.onSearchQueryChanged(text)
+                if (letterSearchController?.isVisible == true) {
+                    letterSearchController?.setExternalQuery(text)
+                } else {
+                    getCurrentFragment()?.onSearchQueryChanged(text)
+                }
             }
 
             requireToolbar().setOnMenuItemClickListener { menuItem ->
@@ -414,6 +427,7 @@ class MainActivity : SimpleActivity() {
 
         binding.mainDialpadButton.setOnClickListener {
             letterSearchController?.toggle()
+            syncLetterSearchWithTopBar()
         }
 
         binding.viewPager.onGlobalLayout {
@@ -422,6 +436,7 @@ class MainActivity : SimpleActivity() {
 
         if (config.openDialPadAtLaunch && !launchedDialer) {
             letterSearchController?.show()
+            syncLetterSearchWithTopBar()
             launchedDialer = true
         }
     }
@@ -431,6 +446,16 @@ class MainActivity : SimpleActivity() {
             activity = this,
             panelBinding = binding.letterSearchPanelInclude
         )
+    }
+
+    /** If top yellow search is already open, hide custom keyboard and reuse system IME query. */
+    private fun syncLetterSearchWithTopBar() {
+        val controller = letterSearchController ?: return
+        if (!controller.isVisible || !binding.mainMenu.isSearchOpen) {
+            return
+        }
+        controller.enterSystemImeMode()
+        controller.setExternalQuery(binding.mainMenu.getCurrentQuery())
     }
 
     private fun setupTabs() {

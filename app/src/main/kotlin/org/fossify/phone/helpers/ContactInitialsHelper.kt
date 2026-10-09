@@ -119,26 +119,65 @@ object ContactInitialsHelper {
     }
 
     fun matchRank(entry: SearchEntry, query: String): MatchRank? {
-        val q = normalizeQuery(query) ?: return null
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            return null
+        }
+
         var best: MatchRank? = null
+        val displayName = entry.contact.getDisplayName().ifBlank { entry.contact.getNameToDisplay() }
 
-        entry.initialsKeys.forEach { initials ->
-            when {
-                initials.startsWith(q) -> {
-                    best = minOfRank(best, MatchRank(tier = 0, matchIndex = 0, keyLength = initials.length))
-                }
+        // Name / Chinese text match (system IME input).
+        val nameIndex = displayName.indexOf(trimmed, ignoreCase = true)
+        if (nameIndex >= 0) {
+            best = MatchRank(
+                tier = if (nameIndex == 0) 0 else 1,
+                matchIndex = nameIndex,
+                keyLength = displayName.length
+            )
+        }
 
-                initials.contains(q) -> {
-                    best = minOfRank(
-                        best,
-                        MatchRank(tier = 1, matchIndex = initials.indexOf(q), keyLength = initials.length)
-                    )
+        // Initials / pinyin match (letter keyboard or Latin IME).
+        val q = normalizeQuery(trimmed)
+        if (q != null) {
+            entry.initialsKeys.forEach { initials ->
+                when {
+                    initials.startsWith(q) -> {
+                        best = minOfRank(best, MatchRank(tier = 0, matchIndex = 0, keyLength = initials.length))
+                    }
+
+                    initials.contains(q) -> {
+                        best = minOfRank(
+                            best,
+                            MatchRank(tier = 1, matchIndex = initials.indexOf(q), keyLength = initials.length)
+                        )
+                    }
                 }
+            }
+
+            if (entry.pinyin.startsWith(q)) {
+                best = minOfRank(best, MatchRank(tier = 2, matchIndex = 0, keyLength = entry.pinyin.length))
+            } else if (entry.pinyin.contains(q)) {
+                best = minOfRank(
+                    best,
+                    MatchRank(tier = 3, matchIndex = entry.pinyin.indexOf(q), keyLength = entry.pinyin.length)
+                )
             }
         }
 
-        if (entry.pinyin.startsWith(q)) {
-            best = minOfRank(best, MatchRank(tier = 2, matchIndex = 0, keyLength = entry.pinyin.length))
+        // Phone number digits.
+        val digits = trimmed.filter { it.isDigit() }
+        if (digits.isNotEmpty()) {
+            entry.contact.phoneNumbers.forEach { phone ->
+                val number = phone.normalizedNumber.ifBlank { phone.value }
+                val index = number.indexOf(digits)
+                if (index >= 0) {
+                    best = minOfRank(
+                        best,
+                        MatchRank(tier = 4, matchIndex = index, keyLength = number.length)
+                    )
+                }
+            }
         }
 
         return best
