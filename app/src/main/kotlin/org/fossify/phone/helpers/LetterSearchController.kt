@@ -1,7 +1,7 @@
 package org.fossify.phone.helpers
 
-import android.annotation.SuppressLint
-import android.view.MotionEvent
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -16,30 +16,31 @@ import org.fossify.phone.adapters.ContactsAdapter
 import org.fossify.phone.databinding.LayoutLetterSearchPanelBinding
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.views.SwipeDismissLinearLayout
 import java.util.Locale
-import kotlin.math.abs
+import java.util.concurrent.Executors
+import kotlin.math.sign
 
 class LetterSearchController(
     private val activity: SimpleActivity,
-    private val panelBinding: LayoutLetterSearchPanelBinding,
-    private val contactsProvider: () -> List<Contact>
+    private val panelBinding: LayoutLetterSearchPanelBinding
 ) {
-    private val swipeThresholdPx = activity.resources.displayMetrics.density * 80
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val indexExecutor = Executors.newSingleThreadExecutor()
     private var query = StringBuilder()
     private var isPanelVisible = false
-    private var downX = 0f
-    private var downY = 0f
-    private var isDraggingHorizontally = false
+    private var searchIndex: List<ContactInitialsHelper.SearchEntry> = emptyList()
+    private var listAdapter: ContactsAdapter? = null
+    private var filterGeneration = 0L
 
     val isVisible: Boolean
         get() = isPanelVisible
 
     init {
         setupKeyboard()
-        setupSwipeToHide(panelBinding.letterSearchDragHandle)
-        setupSwipeToHide(panelBinding.letterSearchQuery)
+        setupSwipeToHide()
         updateQueryUi()
-        filterContacts()
+        renderResults(emptyList(), "")
     }
 
     fun toggle() {
@@ -57,13 +58,10 @@ class LetterSearchController(
 
         isPanelVisible = true
         val panel = panelBinding.root
+        panel.animate().cancel()
         panel.beVisible()
         panel.post {
-            val width = if (panel.width > 0) {
-                panel.width.toFloat()
-            } else {
-                panel.resources.displayMetrics.widthPixels.toFloat()
-            }
+            val width = panelWidth()
             panel.translationX = width
             panel.animate()
                 .translationX(0f)
@@ -80,19 +78,17 @@ class LetterSearchController(
 
         isPanelVisible = false
         val panel = panelBinding.root
+        panel.animate().cancel()
         if (!animated) {
             panel.translationX = 0f
             panel.beGone()
             return
         }
 
-        val width = if (panel.width > 0) {
-            panel.width.toFloat()
-        } else {
-            panel.resources.displayMetrics.widthPixels.toFloat()
-        }
+        val direction = if (panel.translationX == 0f) 1f else sign(panel.translationX)
+        val target = panelWidth() * (if (direction == 0f) 1f else direction)
         panel.animate()
-            .translationX(width)
+            .translationX(target)
             .setDuration(200)
             .withEndAction {
                 panel.translationX = 0f
@@ -107,9 +103,28 @@ class LetterSearchController(
         filterContacts()
     }
 
+    fun updateContacts(contacts: List<Contact>) {
+        indexExecutor.execute {
+            val indexed = ContactInitialsHelper.buildSearchEntries(contacts)
+            mainHandler.post {
+                searchIndex = indexed
+                if (isPanelVisible || query.isNotEmpty()) {
+                    filterContacts()
+                }
+            }
+        }
+    }
+
     fun refreshResults() {
         if (isPanelVisible) {
             filterContacts()
+        }
+    }
+
+    private fun setupSwipeToHide() {
+        val panel = panelBinding.root as? SwipeDismissLinearLayout ?: return
+        panel.onSwipeDismiss = {
+            hide()
         }
     }
 
@@ -132,7 +147,7 @@ class LetterSearchController(
             true
         }
         panelBinding.letterKeyboardInclude.letterKeySpace.setOnClickListener {
-            // Space is ignored for initials matching; keep UI feedback only.
+            // ignored for initials search
         }
         panelBinding.letterKeyboardInclude.letterKeySearch.setOnClickListener {
             filterContacts()
@@ -160,51 +175,6 @@ class LetterSearchController(
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupSwipeToHide(target: View) {
-        target.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downX = event.rawX
-                    downY = event.rawY
-                    isDraggingHorizontally = false
-                    false
-                }
-
-                MotionEvent.ACTION_MOVE -> {
-                    val dx = event.rawX - downX
-                    val dy = event.rawY - downY
-                    if (!isDraggingHorizontally && abs(dx) > abs(dy) && abs(dx) > 24) {
-                        isDraggingHorizontally = true
-                    }
-                    if (isDraggingHorizontally) {
-                        panelBinding.root.translationX = dx
-                        true
-                    } else {
-                        false
-                    }
-                }
-
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (isDraggingHorizontally) {
-                        val dx = event.rawX - downX
-                        if (abs(dx) >= swipeThresholdPx) {
-                            hide()
-                        } else {
-                            panelBinding.root.animate().translationX(0f).setDuration(150).start()
-                        }
-                        isDraggingHorizontally = false
-                        true
-                    } else {
-                        false
-                    }
-                }
-
-                else -> false
-            }
-        }
-    }
-
     private fun updateQueryUi() {
         val textColor = activity.getProperTextColor()
         panelBinding.letterSearchQuery.setTextColor(textColor)
@@ -214,37 +184,68 @@ class LetterSearchController(
 
     private fun filterContacts() {
         val currentQuery = query.toString()
-        val filtered = if (currentQuery.isEmpty()) {
-            ArrayList()
-        } else {
-            ArrayList(
-                contactsProvider()
-                    .filter { ContactInitialsHelper.matchesInitials(it.name, currentQuery) }
-                    .sortedBy { ContactInitialsHelper.getInitials(it.name) }
-            )
+        val generation = ++filterGeneration
+        val snapshot = searchIndex
+
+        if (currentQuery.isEmpty()) {
+            renderResults(emptyList(), currentQuery)
+            return
         }
 
+        indexExecutor.execute {
+            val filtered = snapshot
+                .asSequence()
+                .filter { ContactInitialsHelper.matches(it, currentQuery) }
+                .sortedBy { ContactInitialsHelper.sortKey(it) }
+                .map { it.contact }
+                .toList()
+
+            mainHandler.post {
+                if (generation != filterGeneration) {
+                    return@post
+                }
+                renderResults(filtered, currentQuery)
+            }
+        }
+    }
+
+    private fun renderResults(filtered: List<Contact>, currentQuery: String) {
         panelBinding.letterSearchPlaceholder.beVisibleIf(currentQuery.isEmpty() || filtered.isEmpty())
         panelBinding.letterSearchPlaceholder.text = when {
             currentQuery.isEmpty() -> activity.getString(R.string.letter_search_hint)
+            searchIndex.isEmpty() -> activity.getString(R.string.letter_search_indexing)
             else -> activity.getString(R.string.no_contacts_match_initials)
         }
         panelBinding.letterSearchList.beVisibleIf(filtered.isNotEmpty())
 
-        ContactsAdapter(
-            activity = activity,
-            contacts = filtered,
-            recyclerView = panelBinding.letterSearchList,
-            highlightText = currentQuery,
-            allowLongClick = false,
-            itemClick = {
-                activity.startCallWithConfirmationCheck(it as Contact)
-            },
-            profileIconClick = {
-                activity.startContactDetailsIntent(it as Contact)
+        val adapter = listAdapter
+        if (adapter == null) {
+            listAdapter = ContactsAdapter(
+                activity = activity,
+                contacts = ArrayList(filtered),
+                recyclerView = panelBinding.letterSearchList,
+                highlightText = currentQuery,
+                allowLongClick = false,
+                itemClick = {
+                    activity.startCallWithConfirmationCheck(it as Contact)
+                },
+                profileIconClick = {
+                    activity.startContactDetailsIntent(it as Contact)
+                }
+            ).also {
+                panelBinding.letterSearchList.adapter = it
             }
-        ).apply {
-            panelBinding.letterSearchList.adapter = this
+        } else {
+            adapter.updateItems(filtered, currentQuery)
+        }
+    }
+
+    private fun panelWidth(): Float {
+        val panel = panelBinding.root
+        return if (panel.width > 0) {
+            panel.width.toFloat()
+        } else {
+            panel.resources.displayMetrics.widthPixels.toFloat()
         }
     }
 }

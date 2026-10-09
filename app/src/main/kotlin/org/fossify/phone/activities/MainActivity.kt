@@ -428,8 +428,7 @@ class MainActivity : SimpleActivity() {
     private fun setupLetterSearch() {
         letterSearchController = LetterSearchController(
             activity = this,
-            panelBinding = binding.letterSearchPanelInclude,
-            contactsProvider = { cachedContacts }
+            panelBinding = binding.letterSearchPanelInclude
         )
     }
 
@@ -641,10 +640,11 @@ class MainActivity : SimpleActivity() {
             }
 
             try {
+                val snapshot = ArrayList(contacts)
                 cachedContacts.clear()
-                cachedContacts.addAll(contacts)
+                cachedContacts.addAll(snapshot)
                 runOnUiThread {
-                    letterSearchController?.refreshResults()
+                    letterSearchController?.updateContacts(snapshot)
                 }
             } catch (ignored: Exception) {
             }
