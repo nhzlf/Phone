@@ -11,6 +11,13 @@
     android:paddingBottom="6dp"
     tools:ignore="HardcodedText">
 
+    <!--
+      修改时间：2026-10-10 14:56:46（本机）
+      修改原因：26 键行高偏高，需整体压矮。
+      功能说明：各行 android:layout_height 统一引用 @dimen/letter_key_row_height（现 48dp，原 58dp），
+      见 values/dimens.xml 中同名注释。本布局本身未改结构，仅随 dimen 生效。
+    -->
+
     <!-- Letter (ABC) keys -->
     <LinearLayout
         android:id="@+id/letter_keys_section"

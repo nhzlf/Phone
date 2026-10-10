@@ -20,5 +20,14 @@
     <dimen name="dialpad_letters_text_size">12dp</dimen>
 
     <dimen name="letter_search_fab_margin_bottom">96dp</dimen>
-    <dimen name="letter_key_row_height">58dp</dimen>
+
+    <!--
+      修改时间：2026-10-10 14:56:46（本机）
+      修改原因：用户反馈 APP 自带 26 键（及数字键）每行按键偏高，占用结果列表空间偏多，观感偏“胖”。
+      功能说明：
+        - letter_key_row_height 控制 layout_letter_keyboard.xml 中每一行字母键 / 数字键 / 底栏（卡1·123·卡2）的行高；
+        - 单键高度为 match_parent，随本行高变化；
+        - 原值 58dp → 现 48dp，整体键盘变矮约 40dp（字母区 3 行 + 底栏 1 行；数字模式同理），便于多露出联系人列表。
+    -->
+    <dimen name="letter_key_row_height">48dp</dimen>
 </resources>

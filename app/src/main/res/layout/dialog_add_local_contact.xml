@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  修改时间：2026-10-10 16:34:28（本机）
+  修改原因：需要在本 APP 本地库中手动添加联系人，便于搜索/拨号联调，不依赖系统通讯录。
+  功能说明：对话框表单，输入姓名与电话号码后写入 phone_local.db。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/add_local_contact_holder"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="@dimen/activity_margin"
+    android:paddingTop="@dimen/activity_margin"
+    android:paddingEnd="@dimen/activity_margin">
+
+    <org.fossify.commons.views.MyTextInputLayout
+        android:id="@+id/add_local_contact_name_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/add_local_contact_name_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/add_local_contact_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPersonName"
+            android:maxLines="1"
+            android:singleLine="true" />
+    </org.fossify.commons.views.MyTextInputLayout>
+
+    <org.fossify.commons.views.MyTextInputLayout
+        android:id="@+id/add_local_contact_phone_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/medium_margin"
+        android:hint="@string/add_local_contact_phone_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/add_local_contact_phone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="phone"
+            android:maxLines="1"
+            android:singleLine="true" />
+    </org.fossify.commons.views.MyTextInputLayout>
+</LinearLayout>

@@ -33,6 +33,15 @@
     <string name="import_local_contacts">导入联系人到本地数据库</string>
     <string name="import_local_contacts_confirmation">将用手机通讯录中的姓名和号码覆盖本地联系人库，是否继续？</string>
     <string name="import_local_contacts_done">已导入 %d 条联系人到本地数据库</string>
+    <string name="add_local_contact">添加本地联系人</string>
+    <string name="add_local_contact_name_hint">姓名</string>
+    <string name="add_local_contact_phone_hint">电话号码</string>
+    <string name="add_local_contact_name_required">请输入姓名</string>
+    <string name="add_local_contact_phone_required">请输入电话号码</string>
+    <string name="add_local_contact_phone_invalid">请输入有效的电话号码</string>
+    <string name="add_local_contact_done">已保存到本地联系人库</string>
+    <string name="add_sample_local_contacts">添加测试联系人</string>
+    <string name="add_sample_local_contacts_done">已添加 %d 条测试联系人</string>
     <string name="dialpad">拨号键盘</string>
     <string name="asterisk">星号键</string>
     <string name="hashtag">标签</string>

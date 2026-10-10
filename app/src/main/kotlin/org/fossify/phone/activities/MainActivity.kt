@@ -30,12 +30,12 @@ import org.fossify.phone.BuildConfig
 import org.fossify.phone.R
 import org.fossify.phone.adapters.ViewPagerAdapter
 import org.fossify.phone.databinding.ActivityMainBinding
+import org.fossify.phone.dialogs.AddLocalContactDialog
 import org.fossify.phone.dialogs.ChangeSortingDialog
 import org.fossify.phone.dialogs.FilterContactSourcesDialog
 import org.fossify.phone.extensions.clearMissedCalls
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.handleFullScreenNotificationsPermission
-import org.fossify.phone.extensions.launchCreateNewContactIntent
 import org.fossify.phone.fragments.ContactsFragment
 import org.fossify.phone.fragments.FavoritesFragment
 import org.fossify.phone.fragments.MyViewPagerFragment
@@ -213,7 +213,8 @@ class MainActivity : SimpleActivity() {
             findItem(R.id.clear_call_history).isVisible = currentFragment == getRecentsFragment()
             findItem(R.id.sort).isVisible = currentFragment != getRecentsFragment()
             findItem(R.id.filter).isVisible = currentFragment != getRecentsFragment()
-            findItem(R.id.create_new_contact).isVisible = currentFragment == getContactsFragment()
+            // 修改时间：2026-10-10 16:34:28 — 始终显示「添加本地联系人」，写入 phone_local.db 供搜索测试
+            findItem(R.id.create_new_contact).isVisible = true
             findItem(R.id.change_view_type).isVisible = currentFragment == getFavoritesFragment()
             findItem(R.id.column_count).isVisible = currentFragment == getFavoritesFragment() && config.viewType == VIEW_TYPE_GRID
             findItem(R.id.more_apps_from_us).isVisible = resources.getBoolean(R.bool.is_google_play_build)
@@ -252,7 +253,12 @@ class MainActivity : SimpleActivity() {
             requireToolbar().setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {
                     R.id.clear_call_history -> clearCallHistory()
-                    R.id.create_new_contact -> launchCreateNewContactIntent()
+                    // 修改时间：2026-10-10 16:34:28 — 改为添加本地库联系人（非系统通讯录），保存后刷新搜索索引
+                    R.id.create_new_contact -> {
+                        AddLocalContactDialog(this) {
+                            cacheContacts()
+                        }
+                    }
                     R.id.sort -> showSortingDialog(showCustomSorting = getCurrentFragment() is FavoritesFragment)
                     R.id.filter -> showFilterDialog()
                     R.id.more_apps_from_us -> launchMoreAppsFromUsIntent()

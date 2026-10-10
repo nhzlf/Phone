@@ -104,6 +104,15 @@
     <string name="import_local_contacts">Import contacts into local database</string>
     <string name="import_local_contacts_confirmation">This will replace the local contacts database with names and numbers from the phone book. Continue?</string>
     <string name="import_local_contacts_done">Imported %d contacts into the local database</string>
+    <string name="add_local_contact">Add local contact</string>
+    <string name="add_local_contact_name_hint">Name</string>
+    <string name="add_local_contact_phone_hint">Phone number</string>
+    <string name="add_local_contact_name_required">Please enter a name</string>
+    <string name="add_local_contact_phone_required">Please enter a phone number</string>
+    <string name="add_local_contact_phone_invalid">Please enter a valid phone number</string>
+    <string name="add_local_contact_done">Contact saved to local database</string>
+    <string name="add_sample_local_contacts">Add sample local contacts</string>
+    <string name="add_sample_local_contacts_done">Added %d sample contacts</string>
     <string name="export_call_history">Export call history</string>
     <string name="import_call_history">Import call history</string>
     <string name="calling_accounts">Calling accounts</string>

@@ -452,6 +452,41 @@
                 android:layout_height="wrap_content"
                 android:text="@string/migrating" />
 
+            <!--
+              修改时间：2026-10-10 16:34:28（本机）
+              修改原因：提供本 APP 本地库录入入口，便于测试字母搜索，不写系统通讯录。
+              功能说明：添加单条本地联系人 / 一键写入若干样例联系人 / 原有系统导入。
+            -->
+            <RelativeLayout
+                android:id="@+id/settings_add_local_contact_holder"
+                style="@style/SettingsHolderTextViewOneLinerStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_add_local_contact"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/add_local_contact" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/settings_add_sample_local_contacts_holder"
+                style="@style/SettingsHolderTextViewOneLinerStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_add_sample_local_contacts"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/add_sample_local_contacts" />
+
+            </RelativeLayout>
+
             <RelativeLayout
                 android:id="@+id/settings_import_local_contacts_holder"
                 style="@style/SettingsHolderTextViewOneLinerStyle"

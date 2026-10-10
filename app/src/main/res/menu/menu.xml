@@ -14,10 +14,15 @@
         android:icon="@drawable/ic_filter_vector"
         android:title="@string/filter"
         app:showAsAction="ifRoom" />
+    <!--
+      修改时间：2026-10-10 16:34:28（本机）
+      修改原因：联系人 Tab 隐藏后原「新建联系人」菜单不可见，需改为添加本地库联系人入口。
+      功能说明：标题改为添加本地联系人；MainActivity 中始终显示并打开 AddLocalContactDialog。
+    -->
     <item
         android:id="@+id/create_new_contact"
         android:icon="@drawable/ic_plus_vector"
-        android:title="@string/create_new_contact"
+        android:title="@string/add_local_contact"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/clear_call_history"

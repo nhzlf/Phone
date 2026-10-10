@@ -45,6 +45,52 @@ class ContactRepository(context: Context) {
         appContext.config.localContactsSeeded = false
     }
 
+    /**
+     * 修改时间：2026-10-10 16:34:28（本机）
+     * 修改原因：提供 APP 内手工录入联系人，便于本地库搜索/拨号测试，不写系统通讯录。
+     * 功能说明：按规范化号码 upsert 一条 LocalContact，并标记本地库已有数据（跳过空库种子逻辑）。
+     */
+    fun addContact(contact: LocalContact, callback: (() -> Unit)? = null) {
+        io.execute {
+            db.upsertAll(listOf(contact))
+            appContext.config.localContactsSeeded = true
+            callback?.invoke()
+        }
+    }
+
+    /**
+     * 修改时间：2026-10-10 16:34:28（本机）
+     * 修改原因：一次性写入若干中英文样例，方便首字母/姓名搜索联调。
+     * 功能说明：向本地库批量 upsert 固定测试联系人，返回写入条数。
+     */
+    fun addSampleContacts(callback: (Int) -> Unit) {
+        io.execute {
+            val samples = listOf(
+                sample("张三", "13800000001"),
+                sample("李四", "13800000002"),
+                sample("王五", "13900000003"),
+                sample("赵利访", "13700000004"),
+                sample("陈小明", "13600000005"),
+                sample("Alice Smith", "13500000006"),
+                sample("Bob Zhou", "13400000007")
+            )
+            db.upsertAll(samples)
+            appContext.config.localContactsSeeded = true
+            callback(samples.size)
+        }
+    }
+
+    private fun sample(name: String, phone: String): LocalContact {
+        return LocalContact(
+            displayName = name,
+            phoneNumber = phone,
+            phoneNormalized = phone.filter { it.isDigit() || it == '+' },
+            pinyin = ContactInitialsHelper.getFullPinyin(name),
+            initials = ContactInitialsHelper.getInitials(name),
+            updatedAt = System.currentTimeMillis()
+        )
+    }
+
     fun loadForApp(callback: (List<LocalContact>) -> Unit) {
         io.execute {
             ensureSeededFromSystemIfNeeded()

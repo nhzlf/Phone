@@ -36,6 +36,7 @@ import org.fossify.commons.helpers.isTiramisuPlus
 import org.fossify.commons.models.RadioItem
 import org.fossify.phone.R
 import org.fossify.phone.databinding.ActivitySettingsBinding
+import org.fossify.phone.dialogs.AddLocalContactDialog
 import org.fossify.phone.dialogs.ExportCallHistoryDialog
 import org.fossify.phone.dialogs.ManageVisibleTabsDialog
 import org.fossify.phone.data.ContactRepository
@@ -114,6 +115,8 @@ class SettingsActivity : SimpleActivity() {
         setupDisableProximitySensor()
         setupDisableSwipeToAnswer()
         setupAlwaysShowFullscreen()
+        setupAddLocalContact()
+        setupAddSampleLocalContacts()
         setupImportLocalContacts()
         setupCallsExport()
         setupCallsImport()
@@ -391,6 +394,35 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsExportCallsHolder.setOnClickListener {
             ExportCallHistoryDialog(this) { filename ->
                 saveDocument.launch("$filename.json")
+            }
+        }
+    }
+
+    /**
+     * 修改时间：2026-10-10 16:34:28（本机）
+     * 修改原因：设置页增加本地联系人录入入口，方便测试。
+     * 功能说明：打开姓名/号码对话框，写入 phone_local.db 后刷新条数显示。
+     */
+    private fun setupAddLocalContact() {
+        binding.settingsAddLocalContactHolder.setOnClickListener {
+            AddLocalContactDialog(this) {
+                setupImportLocalContacts()
+            }
+        }
+    }
+
+    /**
+     * 修改时间：2026-10-10 16:34:28（本机）
+     * 修改原因：一键写入若干中英文样例，便于首字母搜索联调。
+     * 功能说明：调用 ContactRepository.addSampleContacts，不覆盖已有不同号码的记录。
+     */
+    private fun setupAddSampleLocalContacts() {
+        binding.settingsAddSampleLocalContactsHolder.setOnClickListener {
+            ContactRepository.getInstance(this).addSampleContacts { added ->
+                runOnUiThread {
+                    toast(getString(R.string.add_sample_local_contacts_done, added))
+                    setupImportLocalContacts()
+                }
             }
         }
     }
