@@ -29,6 +29,7 @@
     <string name="letter_key_backspace">退格</string>
     <string name="no_contacts_match_initials">没有匹配这些首字母的联系人</string>
     <string name="letter_search_indexing">正在加载联系人…</string>
+    <string name="show_letter_keyboard">键盘</string>
     <string name="import_local_contacts">导入联系人到本地数据库</string>
     <string name="import_local_contacts_confirmation">将用手机通讯录中的姓名和号码覆盖本地联系人库，是否继续？</string>
     <string name="import_local_contacts_done">已导入 %d 条联系人到本地数据库</string>

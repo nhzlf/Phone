@@ -41,6 +41,7 @@ import org.fossify.phone.fragments.FavoritesFragment
 import org.fossify.phone.fragments.MyViewPagerFragment
 import org.fossify.phone.fragments.RecentsFragment
 import org.fossify.phone.data.ContactRepository
+import org.fossify.phone.helpers.DraggableViewHelper
 import org.fossify.phone.helpers.LetterSearchController
 import org.fossify.phone.helpers.OPEN_DIAL_PAD_AT_LAUNCH
 import org.fossify.phone.helpers.RecentsHelper
@@ -429,6 +430,17 @@ class MainActivity : SimpleActivity() {
             letterSearchController?.toggle()
             syncLetterSearchWithTopBar()
         }
+        DraggableViewHelper.attach(
+            view = binding.mainDialpadButton,
+            store = DraggableViewHelper.PositionStore(
+                loadX = { config.searchFabPosX },
+                loadY = { config.searchFabPosY },
+                save = { x, y ->
+                    config.searchFabPosX = x
+                    config.searchFabPosY = y
+                }
+            )
+        )
 
         binding.viewPager.onGlobalLayout {
             refreshMenuItems()

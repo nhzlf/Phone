@@ -36,6 +36,7 @@
         android:textSize="22sp"
         android:textStyle="bold" />
 
+    <!-- Results layer: restore button lives here, under the custom keyboard host below. -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -58,9 +59,38 @@
             android:text="@string/letter_search_hint"
             android:textStyle="italic"
             android:visibility="gone" />
+
+        <!-- Same corner / margins as main_dialpad_button (search FAB) on the home screen. -->
+        <org.fossify.commons.views.MyTextView
+            android:id="@+id/letter_keyboard_restore_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="@dimen/bigger_margin"
+            android:layout_marginBottom="@dimen/letter_search_fab_margin_bottom"
+            android:background="@drawable/letter_search_button_background"
+            android:elevation="@dimen/medium_margin"
+            android:minWidth="56dp"
+            android:minHeight="56dp"
+            android:gravity="center"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/show_letter_keyboard"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:visibility="gone" />
     </FrameLayout>
 
-    <include
-        android:id="@+id/letter_keyboard_include"
-        layout="@layout/layout_letter_keyboard" />
+    <org.fossify.phone.views.SwipeDownHideLayout
+        android:id="@+id/letter_keyboard_swipe_host"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="8dp">
+
+        <include
+            android:id="@+id/letter_keyboard_include"
+            layout="@layout/layout_letter_keyboard" />
+    </org.fossify.phone.views.SwipeDownHideLayout>
 </org.fossify.phone.views.SwipeDismissLinearLayout>

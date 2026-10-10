@@ -20,6 +20,10 @@ const val DIALPAD_BEEPS = "dialpad_beeps"
 const val HIDE_DIALPAD_NUMBERS = "hide_dialpad_numbers"
 const val ALWAYS_SHOW_FULLSCREEN = "always_show_fullscreen"
 const val LOCAL_CONTACTS_SEEDED = "local_contacts_seeded"
+const val SEARCH_FAB_POS_X = "search_fab_pos_x"
+const val SEARCH_FAB_POS_Y = "search_fab_pos_y"
+const val KEYBOARD_RESTORE_POS_X = "keyboard_restore_pos_x"
+const val KEYBOARD_RESTORE_POS_Y = "keyboard_restore_pos_y"
 
 const val ALL_TABS_MASK = TAB_CONTACTS or TAB_FAVORITES or TAB_CALL_HISTORY
 

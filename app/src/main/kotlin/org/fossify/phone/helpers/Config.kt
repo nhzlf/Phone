@@ -140,4 +140,22 @@ class Config(context: Context) : BaseConfig(context) {
     var localContactsSeeded: Boolean
         get() = prefs.getBoolean(LOCAL_CONTACTS_SEEDED, false)
         set(localContactsSeeded) = prefs.edit().putBoolean(LOCAL_CONTACTS_SEEDED, localContactsSeeded).apply()
+
+    /** Normalized 0..1 position of the main search FAB; -1 means use default layout. */
+    var searchFabPosX: Float
+        get() = prefs.getFloat(SEARCH_FAB_POS_X, -1f)
+        set(value) = prefs.edit().putFloat(SEARCH_FAB_POS_X, value).apply()
+
+    var searchFabPosY: Float
+        get() = prefs.getFloat(SEARCH_FAB_POS_Y, -1f)
+        set(value) = prefs.edit().putFloat(SEARCH_FAB_POS_Y, value).apply()
+
+    /** Normalized 0..1 position of the "Keyboard" restore button on the search page. */
+    var keyboardRestorePosX: Float
+        get() = prefs.getFloat(KEYBOARD_RESTORE_POS_X, -1f)
+        set(value) = prefs.edit().putFloat(KEYBOARD_RESTORE_POS_X, value).apply()
+
+    var keyboardRestorePosY: Float
+        get() = prefs.getFloat(KEYBOARD_RESTORE_POS_Y, -1f)
+        set(value) = prefs.edit().putFloat(KEYBOARD_RESTORE_POS_Y, value).apply()
 }

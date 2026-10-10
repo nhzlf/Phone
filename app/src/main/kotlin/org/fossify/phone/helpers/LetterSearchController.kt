@@ -9,6 +9,7 @@ import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.getProperTextColor
+import org.fossify.commons.extensions.hideKeyboard
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
@@ -19,9 +20,11 @@ import org.fossify.phone.extensions.callContactWithSimWithConfirmationCheck
 import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.data.LocalContact
 import org.fossify.phone.data.LocalContact.Companion.SOURCE_LOCAL_DB
+import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.views.SwipeDismissLinearLayout
+import org.fossify.phone.views.SwipeDownHideLayout
 import java.util.Locale
 import java.util.concurrent.Executors
 import kotlin.math.sign
@@ -41,6 +44,8 @@ class LetterSearchController(
     private var listAdapter: ContactsAdapter? = null
     private var filterGeneration = 0L
     private var systemImeMode = false
+    /** Whether the app's 26-key / number pad is shown on the search page. */
+    private var customKeyboardVisible = true
 
     val isVisible: Boolean
         get() = isPanelVisible
@@ -51,7 +56,8 @@ class LetterSearchController(
     init {
         setupKeyboard()
         setupSwipeToHide()
-        applyKeyboardMode()
+        setupRestoreKeyboardButton()
+        updateKeyboardUi()
         updateQueryUi()
         renderResults(emptyList(), "")
     }
@@ -82,8 +88,8 @@ class LetterSearchController(
                 .start()
         }
         systemImeMode = false
-        panelBinding.letterKeyboardInclude.root.beVisible()
-        applyKeyboardMode()
+        customKeyboardVisible = true
+        updateKeyboardUi()
         if (isNumberMode) {
             updateQueryUi()
             updateNumberModePlaceholder()
@@ -99,6 +105,8 @@ class LetterSearchController(
 
         isPanelVisible = false
         systemImeMode = false
+        customKeyboardVisible = true
+        updateKeyboardUi()
         val panel = panelBinding.root
         panel.animate().cancel()
         if (!animated) {
@@ -128,19 +136,23 @@ class LetterSearchController(
         if (isNumberMode) {
             isNumberMode = false
         }
-        panelBinding.letterKeyboardInclude.root.beGone()
+        customKeyboardVisible = false
+        updateKeyboardUi()
         updateQueryUi()
         filterContacts()
     }
 
-    /** Top search closed: restore app letter/number keyboard. */
+    /**
+     * Top search closed: leave custom keyboard hidden and keep the restore button
+     * on the results page (user can tap it to bring the 26-key keyboard back).
+     */
     fun exitSystemImeMode() {
         systemImeMode = false
         if (!isPanelVisible) {
             return
         }
-        panelBinding.letterKeyboardInclude.root.beVisible()
-        applyKeyboardMode()
+        customKeyboardVisible = false
+        updateKeyboardUi()
         updateQueryUi()
         filterContacts()
     }
@@ -149,14 +161,39 @@ class LetterSearchController(
     fun setExternalQuery(text: String) {
         if (isNumberMode) {
             isNumberMode = false
-            if (!systemImeMode) {
-                applyKeyboardMode()
+            if (customKeyboardVisible) {
+                updateKeyboardUi()
             }
         }
         letterQuery.setLength(0)
         letterQuery.append(text)
         updateQueryUi()
         filterContacts()
+    }
+
+    fun hideCustomKeyboard() {
+        if (!isPanelVisible || !customKeyboardVisible) {
+            return
+        }
+        customKeyboardVisible = false
+        updateKeyboardUi()
+    }
+
+    fun showCustomKeyboard() {
+        if (!isPanelVisible) {
+            return
+        }
+        customKeyboardVisible = true
+        systemImeMode = false
+        activity.currentFocus?.clearFocus()
+        activity.hideKeyboard()
+        updateKeyboardUi()
+        updateQueryUi()
+        if (isNumberMode) {
+            updateNumberModePlaceholder()
+        } else {
+            filterContacts()
+        }
     }
 
     fun clearQuery() {
@@ -196,6 +233,29 @@ class LetterSearchController(
         panel.onSwipeDismiss = {
             hide()
         }
+
+        val keyboardHost = panelBinding.letterKeyboardSwipeHost as? SwipeDownHideLayout
+        keyboardHost?.onSwipeDownHide = {
+            hideCustomKeyboard()
+        }
+    }
+
+    private fun setupRestoreKeyboardButton() {
+        val button = panelBinding.letterKeyboardRestoreButton
+        button.setOnClickListener {
+            showCustomKeyboard()
+        }
+        DraggableViewHelper.attach(
+            view = button,
+            store = DraggableViewHelper.PositionStore(
+                loadX = { activity.config.keyboardRestorePosX },
+                loadY = { activity.config.keyboardRestorePosY },
+                save = { x, y ->
+                    activity.config.keyboardRestorePosX = x
+                    activity.config.keyboardRestorePosY = y
+                }
+            )
+        )
     }
 
     private fun setupKeyboard() {
@@ -221,7 +281,7 @@ class LetterSearchController(
 
         keyboard.letterKeyModeToggle.setOnClickListener {
             isNumberMode = !isNumberMode
-            applyKeyboardMode()
+            updateKeyboardUi()
             updateQueryUi()
             if (isNumberMode) {
                 updateNumberModePlaceholder()
@@ -238,24 +298,37 @@ class LetterSearchController(
         }
     }
 
-    private fun applyKeyboardMode() {
+    private fun updateKeyboardUi() {
+        val keyboardHost = panelBinding.letterKeyboardSwipeHost
         val keyboard = panelBinding.letterKeyboardInclude
-        if (systemImeMode) {
-            keyboard.root.beGone()
-            panelBinding.letterSearchList.beVisibleIf(currentResults.isNotEmpty())
+        val restoreButton = panelBinding.letterKeyboardRestoreButton
+
+        if (!isPanelVisible) {
+            keyboardHost.beGone()
+            restoreButton.beGone()
             return
         }
 
-        keyboard.root.beVisible()
-        keyboard.letterKeysSection.beVisibleIf(!isNumberMode)
-        keyboard.numberKeysSection.beVisibleIf(isNumberMode)
-        keyboard.letterKeyModeToggle.text = if (isNumberMode) {
-            activity.getString(R.string.letter_key_mode_abc)
-        } else {
-            activity.getString(R.string.letter_key_mode_123)
-        }
+        // Restore button sits on the results layer (under keyboard host).
+        // Always show it while the custom keyboard is hidden — with or without system IME.
+        restoreButton.beVisibleIf(!customKeyboardVisible)
 
-        panelBinding.letterSearchList.beVisibleIf(!isNumberMode && currentResults.isNotEmpty())
+        if (customKeyboardVisible) {
+            keyboardHost.beVisible()
+            keyboardHost.translationY = 0f
+            keyboard.root.beVisible()
+            keyboard.letterKeysSection.beVisibleIf(!isNumberMode)
+            keyboard.numberKeysSection.beVisibleIf(isNumberMode)
+            keyboard.letterKeyModeToggle.text = if (isNumberMode) {
+                activity.getString(R.string.letter_key_mode_abc)
+            } else {
+                activity.getString(R.string.letter_key_mode_123)
+            }
+            panelBinding.letterSearchList.beVisibleIf(!isNumberMode && currentResults.isNotEmpty())
+        } else {
+            keyboardHost.beGone()
+            panelBinding.letterSearchList.beVisibleIf(!isNumberMode && currentResults.isNotEmpty())
+        }
     }
 
     private fun deleteOneChar() {

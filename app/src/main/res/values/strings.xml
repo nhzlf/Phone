@@ -36,6 +36,7 @@
     <string name="letter_key_backspace">Backspace</string>
     <string name="no_contacts_match_initials">No contacts match these initials</string>
     <string name="letter_search_indexing">Loading contacts…</string>
+    <string name="show_letter_keyboard">Keyboard</string>
 
     <!-- Dialpad -->
     <string name="dialpad">Dialpad</string>
