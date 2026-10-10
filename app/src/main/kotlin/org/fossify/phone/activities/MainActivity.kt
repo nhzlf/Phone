@@ -254,8 +254,9 @@ class MainActivity : SimpleActivity() {
                 when (menuItem.itemId) {
                     R.id.clear_call_history -> clearCallHistory()
                     // 修改时间：2026-10-10 16:34:28 — 改为添加本地库联系人（非系统通讯录），保存后刷新搜索索引
+                    // 注意：外层是 mainMenu.apply，此处 this 是 MySearchMenu，须用 this@MainActivity
                     R.id.create_new_contact -> {
-                        AddLocalContactDialog(this) {
+                        AddLocalContactDialog(this@MainActivity) {
                             cacheContacts()
                         }
                     }

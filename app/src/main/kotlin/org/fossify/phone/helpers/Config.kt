@@ -8,7 +8,9 @@ import android.telephony.TelephonyManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.fossify.commons.helpers.BaseConfig
+import org.fossify.commons.helpers.START_NAME_WITH_SURNAME
 import org.fossify.commons.helpers.TAB_CALL_HISTORY
+import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.extensions.getPhoneAccountHandleModel
 import org.fossify.phone.extensions.putPhoneAccountHandle
 import org.fossify.phone.models.SpeedDial
@@ -18,6 +20,19 @@ import java.util.Locale
 class Config(context: Context) : BaseConfig(context) {
     companion object {
         fun newInstance(context: Context) = Config(context)
+    }
+
+    init {
+        /**
+         * 修改时间：2026-10-10 16:48:42（本机）
+         * 修改原因：面向中文姓名使用习惯，「姓氏在前」更合理；commons 默认值为 false。
+         * 功能说明：若用户从未改过该开关（prefs 中无 start_name_with_surname），则默认写入 true；
+         *           已手动关闭/开启过的用户偏好保持不变。并同步 Contact.startWithSurname 供显示名拼接使用。
+         */
+        if (!prefs.contains(START_NAME_WITH_SURNAME)) {
+            startNameWithSurname = true
+        }
+        Contact.startWithSurname = startNameWithSurname
     }
 
     private val regionHint: String by lazy {

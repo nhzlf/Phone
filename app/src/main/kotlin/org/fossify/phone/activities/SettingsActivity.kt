@@ -34,6 +34,7 @@ import org.fossify.commons.helpers.isNougatPlus
 import org.fossify.commons.helpers.isQPlus
 import org.fossify.commons.helpers.isTiramisuPlus
 import org.fossify.commons.models.RadioItem
+import org.fossify.commons.models.contacts.Contact
 import org.fossify.phone.R
 import org.fossify.phone.databinding.ActivitySettingsBinding
 import org.fossify.phone.dialogs.AddLocalContactDialog
@@ -308,6 +309,8 @@ class SettingsActivity : SimpleActivity() {
             settingsStartNameWithSurnameHolder.setOnClickListener {
                 settingsStartNameWithSurname.toggle()
                 config.startNameWithSurname = settingsStartNameWithSurname.isChecked
+                // 与 Config 默认「姓氏在前」一致：切换后立即作用于显示名拼接
+                Contact.startWithSurname = settingsStartNameWithSurname.isChecked
             }
         }
     }
