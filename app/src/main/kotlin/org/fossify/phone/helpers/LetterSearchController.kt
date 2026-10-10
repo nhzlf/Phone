@@ -19,10 +19,8 @@ import org.fossify.phone.databinding.LayoutLetterSearchPanelBinding
 import org.fossify.phone.extensions.callContactWithSimWithConfirmationCheck
 import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.data.LocalContact
-import org.fossify.phone.data.LocalContact.Companion.SOURCE_LOCAL_DB
 import org.fossify.phone.extensions.config
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
-import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.views.SwipeDismissLinearLayout
 import org.fossify.phone.views.SwipeDownHideLayout
 import java.util.Locale
@@ -502,29 +500,8 @@ class LetterSearchController(
 
         val contacts = filtered.map { it.contact }
         currentResults = contacts
-        val suffixByRawId = HashMap<Int, String>(filtered.size)
-        filtered.forEach { entry ->
-            val suffix = buildString {
-                append(entry.primaryInitials.uppercase(Locale.US))
-                val extras = entry.initialsKeys
-                    .filter { it != entry.primaryInitials }
-                    .take(2)
-                if (extras.isNotEmpty()) {
-                    append(" · ")
-                    append(extras.joinToString(" · "))
-                }
-                if (entry.pinyin.isNotEmpty()) {
-                    append(" · ")
-                    append(entry.pinyin)
-                }
-            }
-            suffixByRawId[entry.contact.rawId] = suffix
-        }
 
-        val suffixProvider: (Contact) -> String = { contact ->
-            suffixByRawId[contact.rawId].orEmpty()
-        }
-
+        // 修改时间：2026-10-10 17:12:58 — 搜索结果取消首字母后缀与姓氏圆标，右侧显示脱敏号码
         val adapter = listAdapter
         if (adapter == null) {
             listAdapter = ContactsAdapter(
@@ -536,18 +513,12 @@ class LetterSearchController(
                 itemClick = {
                     activity.startCallWithConfirmationCheck(it as Contact)
                 },
-                profileIconClick = {
-                    val contact = it as Contact
-                    if (contact.source != "call_log" && contact.source != SOURCE_LOCAL_DB) {
-                        activity.startContactDetailsIntent(contact)
-                    }
-                },
-                nameSuffixProvider = suffixProvider
+                profileIconClick = null,
+                showMaskedPhoneNoAvatar = true
             ).also {
                 panelBinding.letterSearchList.adapter = it
             }
         } else {
-            adapter.nameSuffixProvider = suffixProvider
             adapter.replaceItems(contacts, currentQuery)
         }
     }

@@ -32,8 +32,10 @@ import org.fossify.phone.activities.SimpleActivity
 import org.fossify.phone.extensions.areMultipleSIMsAvailable
 import org.fossify.phone.extensions.callContactWithSim
 import org.fossify.phone.extensions.config
+import org.fossify.phone.databinding.ItemContactMaskedPhoneBinding
 import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.extensions.toMaskedPhoneDisplay
 import org.fossify.phone.interfaces.RefreshItemsListener
 import java.util.Collections
 
@@ -49,9 +51,20 @@ class ContactsAdapter(
     private val allowLongClick: Boolean = true,
     itemClick: (Any) -> Unit,
     val profileIconClick: ((Any) -> Unit)? = null,
-    var nameSuffixProvider: ((Contact) -> String)? = null
+    var nameSuffixProvider: ((Contact) -> String)? = null,
+    /**
+     * 修改时间：2026-10-10 17:12:58（本机）
+     * 修改原因：字母搜索页取消姓氏圆标与首字母后缀，改为右侧脱敏号码。
+     * 功能说明：为 true 时使用 item_contact_masked_phone 行布局（无头像、号码右对齐）。
+     */
+    private val showMaskedPhoneNoAvatar: Boolean = false
 ) : MyRecyclerViewAdapter(activity, recyclerView, itemClick),
     ItemTouchHelperContract, MyRecyclerView.MyZoomListener {
+
+    companion object {
+        /** 与 commons VIEW_TYPE_LIST/GRID 区分的本 APP 搜索行样式 */
+        const val VIEW_TYPE_MASKED_PHONE_LIST = 1001
+    }
 
     private var textToHighlight = highlightText
     var fontSize: Float = activity.getTextSize()
@@ -145,7 +158,7 @@ class ContactsAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return viewType
+        return if (showMaskedPhoneNoAvatar) VIEW_TYPE_MASKED_PHONE_LIST else viewType
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -363,7 +376,7 @@ class ContactsAdapter(
             itemContactFrame.isSelected = selectedKeys.contains(contact.rawId)
 
             itemContactImage.apply {
-                if (profileIconClick != null && viewType != VIEW_TYPE_GRID) {
+                if (!showMaskedPhoneNoAvatar && profileIconClick != null && viewType != VIEW_TYPE_GRID) {
                     setBackgroundResource(R.drawable.selector_clickable_circle)
 
                     setOnClickListener {
@@ -385,10 +398,15 @@ class ContactsAdapter(
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize)
 
                 val name = contact.getDisplayName()
-                val suffix = nameSuffixProvider?.invoke(contact)
-                    ?.takeIf { it.isNotBlank() }
-                    ?.let { "  [$it]" }
-                    .orEmpty()
+                // 搜索脱敏模式不再拼接首字母后缀，仅显示姓名
+                val suffix = if (showMaskedPhoneNoAvatar) {
+                    ""
+                } else {
+                    nameSuffixProvider?.invoke(contact)
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { "  [$it]" }
+                        .orEmpty()
+                }
                 val displayName = name + suffix
                 text = if (textToHighlight.isEmpty()) {
                     displayName
@@ -416,6 +434,19 @@ class ContactsAdapter(
                 }
             }
 
+            if (showMaskedPhoneNoAvatar) {
+                binding.itemContactMaskedNumber?.apply {
+                    val number = contact.getPrimaryNumber()
+                        ?: contact.phoneNumbers.firstOrNull()?.normalizedNumber
+                        ?: contact.phoneNumbers.firstOrNull()?.value
+                        ?: ""
+                    text = number.toMaskedPhoneDisplay()
+                    setTextColor(textColor)
+                    beVisible()
+                }
+                itemContactImage.beGone()
+            }
+
             if (enableDrag && textToHighlight.isEmpty()) {
                 dragHandleIcon.apply {
                     beVisibleIf(selectedKeys.isNotEmpty())
@@ -434,7 +465,7 @@ class ContactsAdapter(
                 }
             }
 
-            if (!activity.isDestroyed) {
+            if (!showMaskedPhoneNoAvatar && !activity.isDestroyed) {
                 SimpleContactsHelper(root.context).loadContactImage(contact.photoUri, itemContactImage, contact.getDisplayName())
             }
         }
@@ -489,6 +520,7 @@ class ContactsAdapter(
             fun getByItemViewType(viewType: Int): Binding {
                 return when (viewType) {
                     VIEW_TYPE_GRID -> ItemContactGrid
+                    VIEW_TYPE_MASKED_PHONE_LIST -> ItemContactMasked
                     else -> ItemContact
                 }
             }
@@ -517,6 +549,16 @@ class ContactsAdapter(
                 return ItemContactBindingAdapter(ItemContactWithoutNumberBinding.bind(view))
             }
         }
+
+        data object ItemContactMasked : Binding {
+            override fun inflate(layoutInflater: LayoutInflater, viewGroup: ViewGroup, attachToRoot: Boolean): ItemViewBinding {
+                return ItemContactMaskedBindingAdapter(ItemContactMaskedPhoneBinding.inflate(layoutInflater, viewGroup, attachToRoot))
+            }
+
+            override fun bind(view: View): ItemViewBinding {
+                return ItemContactMaskedBindingAdapter(ItemContactMaskedPhoneBinding.bind(view))
+            }
+        }
     }
 
     private interface ItemViewBinding : ViewBinding {
@@ -524,6 +566,7 @@ class ContactsAdapter(
         val itemContactImage: ImageView
         val itemContactFrame: ConstraintLayout
         val dragHandleIcon: ImageView
+        val itemContactMaskedNumber: TextView?
     }
 
     private class ItemContactGridBindingAdapter(val binding: ItemContactWithoutNumberGridBinding) : ItemViewBinding {
@@ -531,6 +574,7 @@ class ContactsAdapter(
         override val itemContactImage = binding.itemContactImage
         override val itemContactFrame = binding.itemContactFrame
         override val dragHandleIcon = binding.dragHandleIcon
+        override val itemContactMaskedNumber: TextView? = null
 
         override fun getRoot(): View = binding.root
     }
@@ -540,6 +584,17 @@ class ContactsAdapter(
         override val itemContactImage = binding.itemContactImage
         override val itemContactFrame = binding.itemContactFrame
         override val dragHandleIcon = binding.dragHandleIcon
+        override val itemContactMaskedNumber: TextView? = null
+
+        override fun getRoot(): View = binding.root
+    }
+
+    private class ItemContactMaskedBindingAdapter(val binding: ItemContactMaskedPhoneBinding) : ItemViewBinding {
+        override val itemContactName = binding.itemContactName
+        override val itemContactImage = binding.itemContactImage
+        override val itemContactFrame = binding.itemContactFrame
+        override val dragHandleIcon = binding.dragHandleIcon
+        override val itemContactMaskedNumber: TextView? = binding.itemContactMaskedNumber
 
         override fun getRoot(): View = binding.root
     }

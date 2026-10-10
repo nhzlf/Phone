@@ -40,7 +40,6 @@ import org.fossify.commons.extensions.highlightTextPart
 import org.fossify.commons.extensions.launchSendSMSIntent
 import org.fossify.commons.extensions.setupViewBackground
 import org.fossify.commons.helpers.PERMISSION_WRITE_CALL_LOG
-import org.fossify.commons.helpers.SimpleContactsHelper
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isNougatPlus
 import org.fossify.commons.models.contacts.Contact
@@ -59,6 +58,7 @@ import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.extensions.startAddContactIntent
 import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
+import org.fossify.phone.extensions.toMaskedPhoneDisplay
 import org.fossify.phone.extensions.withoutSurnameComma
 import org.fossify.phone.helpers.RecentsHelper
 import org.fossify.phone.interfaces.RefreshItemsListener
@@ -505,6 +505,15 @@ class RecentCallsAdapter(
                     isSelected = true
                 }
 
+                // 修改时间：2026-10-10 17:12:58 — 姓名右侧显示脱敏号码（前3+**+后4），靠右对齐；隐藏姓氏圆标
+                itemRecentsMaskedNumber.apply {
+                    text = call.phoneNumber.toMaskedPhoneDisplay()
+                    setTextColor(secondaryTextColor)
+                    setTextSize(TypedValue.COMPLEX_UNIT_PX, currentFontSize * 0.85f)
+                    beVisible()
+                }
+                itemRecentsImage.beGone()
+
                 itemRecentsDateTime.apply {
                     text = if (refreshItemsListener == null) {
                         call.startTS.formatDateOrTime(context, hideTimeOnOtherDays = false, showCurrentYear = false, hideTodaysDate = false)
@@ -569,25 +578,8 @@ class RecentCallsAdapter(
                     itemRecentsSimId.text = call.simID.toString()
                 }
 
-                SimpleContactsHelper(root.context).loadContactImage(call.photoUri, itemRecentsImage, call.name)
-
-                itemRecentsImage.apply {
-                    if (profileIconClick != null) {
-                        setBackgroundResource(R.drawable.selector_clickable_circle)
-
-                        setOnClickListener {
-                            if (!actModeCallback.isSelectable) {
-                                profileIconClick.invoke(call)
-                            } else {
-                                viewClicked(call)
-                            }
-                        }
-                        setOnLongClickListener {
-                            viewLongClicked()
-                            true
-                        }
-                    }
-                }
+                // 修改时间：2026-10-10 17:12:58 — 不显示姓氏/头像圆标，把横向空间留给姓名与脱敏号码
+                itemRecentsImage.beGone()
 
                 val drawable = when (call.type) {
                     Calls.OUTGOING_TYPE -> outgoingCallIcon
