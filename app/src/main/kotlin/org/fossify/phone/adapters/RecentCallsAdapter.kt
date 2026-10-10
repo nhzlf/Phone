@@ -510,9 +510,9 @@ class RecentCallsAdapter(
                     text = call.phoneNumber.toMaskedPhoneDisplay()
                     setTextColor(secondaryTextColor)
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, currentFontSize * 0.85f)
-                    beVisible()
+                    beVisibleIf(true)
                 }
-                itemRecentsImage.beGone()
+                itemRecentsImage.beVisibleIf(false)
 
                 itemRecentsDateTime.apply {
                     text = if (refreshItemsListener == null) {
@@ -577,9 +577,6 @@ class RecentCallsAdapter(
                     itemRecentsSimId.setTextColor(simColor.getContrastColor())
                     itemRecentsSimId.text = call.simID.toString()
                 }
-
-                // 修改时间：2026-10-10 17:12:58 — 不显示姓氏/头像圆标，把横向空间留给姓名与脱敏号码
-                itemRecentsImage.beGone()
 
                 val drawable = when (call.type) {
                     Calls.OUTGOING_TYPE -> outgoingCallIcon
