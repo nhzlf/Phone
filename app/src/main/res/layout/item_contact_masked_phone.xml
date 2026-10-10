@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  修改时间：2026-10-10 17:12:58（本机）
-  修改原因：搜索页取消姓氏圆标、取消首字母后缀，改为姓名+右侧脱敏号码以增加可显示字数。
-  功能说明：无头像；姓名靠左省略，脱敏号码靠右对齐。id 与 ContactsAdapter 约定一致。
+  修改时间：2026-10-10 17:51:54（本机）
+  修改原因：恢复姓氏圆标（同字同色由 ContactLetterIconHelper 绘制），保留右侧脱敏号码。
+  功能说明：左侧首字图标 + 姓名 + 右侧脱敏号码。
 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -14,17 +14,18 @@
     android:clickable="true"
     android:focusable="true"
     android:minHeight="48dp"
-    android:paddingStart="12dp"
-    android:paddingTop="10dp"
+    android:paddingStart="8dp"
+    android:paddingTop="8dp"
     android:paddingEnd="12dp"
-    android:paddingBottom="10dp">
+    android:paddingBottom="8dp">
 
-    <!-- 保留 id 供适配器绑定，默认隐藏 -->
     <ImageView
         android:id="@+id/item_contact_image"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone"
+        android:layout_width="@dimen/normal_icon_size"
+        android:layout_height="@dimen/normal_icon_size"
+        android:padding="@dimen/tiny_margin"
+        android:src="@drawable/ic_person_vector"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="ContentDescription" />
@@ -42,13 +43,14 @@
         android:id="@+id/item_contact_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:textAlignment="viewStart"
         android:textSize="@dimen/bigger_text_size"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/item_contact_masked_number"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/item_contact_image"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="张三" />
 

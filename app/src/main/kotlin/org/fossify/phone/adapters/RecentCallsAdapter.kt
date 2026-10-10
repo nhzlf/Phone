@@ -60,6 +60,7 @@ import org.fossify.phone.extensions.startCallWithConfirmationCheck
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.extensions.toMaskedPhoneDisplay
 import org.fossify.phone.extensions.withoutSurnameComma
+import org.fossify.phone.helpers.ContactLetterIconHelper
 import org.fossify.phone.helpers.RecentsHelper
 import org.fossify.phone.interfaces.RefreshItemsListener
 import org.fossify.phone.models.CallLogItem
@@ -505,14 +506,20 @@ class RecentCallsAdapter(
                     isSelected = true
                 }
 
-                // 修改时间：2026-10-10 17:12:58 — 姓名右侧显示脱敏号码（前3+**+后4），靠右对齐；隐藏姓氏圆标
+                // 修改时间：2026-10-10 17:51:54 — 右侧脱敏号码；左侧恢复圆标且同字同色
                 itemRecentsMaskedNumber.apply {
                     text = call.phoneNumber.toMaskedPhoneDisplay()
                     setTextColor(secondaryTextColor)
                     setTextSize(TypedValue.COMPLEX_UNIT_PX, currentFontSize * 0.85f)
                     beVisibleIf(true)
                 }
-                itemRecentsImage.beVisibleIf(false)
+                itemRecentsImage.beVisibleIf(true)
+                ContactLetterIconHelper.loadContactImage(
+                    root.context,
+                    call.photoUri,
+                    itemRecentsImage,
+                    name
+                )
 
                 itemRecentsDateTime.apply {
                     text = if (refreshItemsListener == null) {

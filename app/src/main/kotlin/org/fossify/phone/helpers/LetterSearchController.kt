@@ -90,7 +90,7 @@ class LetterSearchController(
         updateKeyboardUi()
         if (isNumberMode) {
             updateQueryUi()
-            updateNumberModePlaceholder()
+            filterContactsByNumber()
         } else {
             filterContacts()
         }
@@ -188,7 +188,7 @@ class LetterSearchController(
         updateKeyboardUi()
         updateQueryUi()
         if (isNumberMode) {
-            updateNumberModePlaceholder()
+            filterContactsByNumber()
         } else {
             filterContacts()
         }
@@ -202,7 +202,7 @@ class LetterSearchController(
         }
         updateQueryUi()
         if (isNumberMode) {
-            updateNumberModePlaceholder()
+            filterContactsByNumber()
         } else {
             filterContacts()
         }
@@ -213,15 +213,24 @@ class LetterSearchController(
             val indexed = ContactInitialsHelper.buildSearchEntriesFromLocal(contacts)
             mainHandler.post {
                 searchIndex = indexed
-                if (!isNumberMode && isPanelVisible) {
-                    filterContacts()
+                if (isPanelVisible) {
+                    if (isNumberMode) {
+                        filterContactsByNumber()
+                    } else {
+                        filterContacts()
+                    }
                 }
             }
         }
     }
 
     fun refreshResults() {
-        if (isPanelVisible && !isNumberMode) {
+        if (!isPanelVisible) {
+            return
+        }
+        if (isNumberMode) {
+            filterContactsByNumber()
+        } else {
             filterContacts()
         }
     }
@@ -281,8 +290,9 @@ class LetterSearchController(
             isNumberMode = !isNumberMode
             updateKeyboardUi()
             updateQueryUi()
+            // 修改时间：2026-10-10 17:51:54 — 123 数字模式仍保留联系人列表，按号码模糊筛选
             if (isNumberMode) {
-                updateNumberModePlaceholder()
+                filterContactsByNumber()
             } else {
                 filterContacts()
             }
@@ -322,10 +332,10 @@ class LetterSearchController(
             } else {
                 activity.getString(R.string.letter_key_mode_123)
             }
-            panelBinding.letterSearchList.beVisibleIf(!isNumberMode && currentResults.isNotEmpty())
+            panelBinding.letterSearchList.beVisibleIf(currentResults.isNotEmpty())
         } else {
             keyboardHost.beGone()
-            panelBinding.letterSearchList.beVisibleIf(!isNumberMode && currentResults.isNotEmpty())
+            panelBinding.letterSearchList.beVisibleIf(currentResults.isNotEmpty())
         }
     }
 
@@ -335,7 +345,7 @@ class LetterSearchController(
             buffer.deleteCharAt(buffer.lastIndex)
             updateQueryUi()
             if (isNumberMode) {
-                updateNumberModePlaceholder()
+                filterContactsByNumber()
             } else {
                 filterContacts()
             }
@@ -398,7 +408,7 @@ class LetterSearchController(
                 view.setOnClickListener {
                     numberInput.append(label[0])
                     updateQueryUi()
-                    updateNumberModePlaceholder()
+                    filterContactsByNumber()
                 }
             }
         }
@@ -439,11 +449,30 @@ class LetterSearchController(
         }
     }
 
-    private fun updateNumberModePlaceholder() {
-        panelBinding.letterSearchList.beGone()
-        panelBinding.letterSearchPlaceholder.beVisible()
-        panelBinding.letterSearchPlaceholder.text = activity.getString(R.string.letter_key_number_hint)
-        currentResults = emptyList()
+    /**
+     * 修改时间：2026-10-10 17:51:54（本机）
+     * 修改原因：数字名（如纯号码作姓名）应排在中文/字母名之后，便于浏览。
+     */
+    private fun isNumericDisplayName(name: String): Boolean {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) {
+            return true
+        }
+        val digits = trimmed.count { it.isDigit() }
+        val lettersOrHan = trimmed.count {
+            it.isLetter() || Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN
+        }
+        return digits > 0 && lettersOrHan == 0
+    }
+
+    private fun sortSearchEntries(entries: List<ContactInitialsHelper.SearchEntry>): List<ContactInitialsHelper.SearchEntry> {
+        return entries.sortedWith(
+            compareBy<ContactInitialsHelper.SearchEntry> {
+                isNumericDisplayName(it.contact.getDisplayName())
+            }
+                .thenBy { it.primaryInitials.lowercase(Locale.US) }
+                .thenBy { it.contact.getDisplayName() }
+        )
     }
 
     private fun filterContacts() {
@@ -453,23 +482,23 @@ class LetterSearchController(
 
         indexExecutor.execute {
             val filtered = if (currentQuery.isEmpty()) {
-                // Entering search: show everyone from local DB.
-                snapshot.sortedWith(
-                    compareBy<ContactInitialsHelper.SearchEntry> { it.primaryInitials.lowercase(Locale.US) }
-                        .thenBy { it.contact.getDisplayName() }
-                )
+                sortSearchEntries(snapshot)
             } else {
-                snapshot
+                val matched = snapshot
                     .mapNotNull { entry ->
                         val rank = ContactInitialsHelper.matchRank(entry, currentQuery) ?: return@mapNotNull null
                         entry to rank
                     }
                     .sortedWith(
-                        compareBy<Pair<ContactInitialsHelper.SearchEntry, ContactInitialsHelper.MatchRank>> { it.second }
+                        compareBy<Pair<ContactInitialsHelper.SearchEntry, ContactInitialsHelper.MatchRank>> {
+                            isNumericDisplayName(it.first.contact.getDisplayName())
+                        }
+                            .thenBy { it.second }
                             .thenBy { it.first.primaryInitials }
                             .thenBy { it.first.contact.getDisplayName() }
                     )
                     .map { it.first }
+                matched
             }
 
             mainHandler.post {
@@ -481,19 +510,49 @@ class LetterSearchController(
         }
     }
 
+    /**
+     * 修改时间：2026-10-10 17:51:54（本机）
+     * 修改原因：点 123 后仍要看到联系人，并随数字输入模糊匹配电话号码。
+     * 功能说明：空输入显示全部（数字名在后）；有数字则号码包含该串即匹配。
+     */
+    private fun filterContactsByNumber() {
+        val digitsQuery = numberInput.toString().filter { it.isDigit() || it == '*' || it == '#' }
+        val generation = ++filterGeneration
+        val snapshot = searchIndex
+
+        indexExecutor.execute {
+            val filtered = if (digitsQuery.isEmpty()) {
+                sortSearchEntries(snapshot)
+            } else {
+                snapshot
+                    .filter { entry ->
+                        entry.contact.phoneNumbers.any { phone ->
+                            val normalized = phone.normalizedNumber.ifBlank { phone.value }
+                            val compact = normalized.filter { it.isDigit() || it == '*' || it == '#' }
+                            compact.contains(digitsQuery.filter { it.isDigit() || it == '*' || it == '#' })
+                        } || ContactInitialsHelper.matchRank(entry, digitsQuery) != null
+                    }
+                    .let { sortSearchEntries(it) }
+            }
+
+            mainHandler.post {
+                if (generation != filterGeneration || !isNumberMode) {
+                    return@post
+                }
+                renderResults(filtered, digitsQuery)
+            }
+        }
+    }
+
     private fun renderResults(
         filtered: List<ContactInitialsHelper.SearchEntry>,
         currentQuery: String
     ) {
-        if (isNumberMode) {
-            updateNumberModePlaceholder()
-            return
-        }
-
         panelBinding.letterSearchPlaceholder.beVisibleIf(filtered.isEmpty())
         panelBinding.letterSearchPlaceholder.text = when {
             searchIndex.isEmpty() -> activity.getString(R.string.letter_search_indexing)
             currentQuery.isNotEmpty() -> activity.getString(R.string.no_contacts_match_initials)
+            isNumberMode -> activity.getString(R.string.letter_key_number_hint)
             else -> activity.getString(R.string.letter_search_hint)
         }
         panelBinding.letterSearchList.beVisibleIf(filtered.isNotEmpty())
@@ -501,7 +560,6 @@ class LetterSearchController(
         val contacts = filtered.map { it.contact }
         currentResults = contacts
 
-        // 修改时间：2026-10-10 17:12:58 — 搜索结果取消首字母后缀与姓氏圆标，右侧显示脱敏号码
         val adapter = listAdapter
         if (adapter == null) {
             listAdapter = ContactsAdapter(

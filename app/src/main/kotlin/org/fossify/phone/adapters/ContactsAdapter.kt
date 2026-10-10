@@ -36,6 +36,7 @@ import org.fossify.phone.databinding.ItemContactMaskedPhoneBinding
 import org.fossify.phone.extensions.getDisplayName
 import org.fossify.phone.extensions.startContactDetailsIntent
 import org.fossify.phone.extensions.toMaskedPhoneDisplay
+import org.fossify.phone.helpers.ContactLetterIconHelper
 import org.fossify.phone.interfaces.RefreshItemsListener
 import java.util.Collections
 
@@ -53,9 +54,9 @@ class ContactsAdapter(
     val profileIconClick: ((Any) -> Unit)? = null,
     var nameSuffixProvider: ((Contact) -> String)? = null,
     /**
-     * 修改时间：2026-10-10 17:12:58（本机）
-     * 修改原因：字母搜索页取消姓氏圆标与首字母后缀，改为右侧脱敏号码。
-     * 功能说明：为 true 时使用 item_contact_masked_phone 行布局（无头像、号码右对齐）。
+     * 修改时间：2026-10-10 17:51:54（本机）
+     * 修改原因：搜索行需右侧脱敏号码，并恢复左侧姓氏圆标（同字同色）。
+     * 功能说明：为 true 时使用 item_contact_masked_phone（有圆标 + 脱敏号码）。
      */
     private val showMaskedPhoneNoAvatar: Boolean = false
 ) : MyRecyclerViewAdapter(activity, recyclerView, itemClick),
@@ -376,7 +377,7 @@ class ContactsAdapter(
             itemContactFrame.isSelected = selectedKeys.contains(contact.rawId)
 
             itemContactImage.apply {
-                if (!showMaskedPhoneNoAvatar && profileIconClick != null && viewType != VIEW_TYPE_GRID) {
+                if (profileIconClick != null && viewType != VIEW_TYPE_GRID && !showMaskedPhoneNoAvatar) {
                     setBackgroundResource(R.drawable.selector_clickable_circle)
 
                     setOnClickListener {
@@ -398,7 +399,7 @@ class ContactsAdapter(
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, fontSize)
 
                 val name = contact.getDisplayName()
-                // 搜索脱敏模式不再拼接首字母后缀，仅显示姓名
+                // 搜索脱敏行不再拼接首字母后缀，仅显示姓名
                 val suffix = if (showMaskedPhoneNoAvatar) {
                     ""
                 } else {
@@ -444,7 +445,7 @@ class ContactsAdapter(
                     setTextColor(textColor)
                     beVisible()
                 }
-                itemContactImage.beGone()
+                itemContactImage.beVisible()
             }
 
             if (enableDrag && textToHighlight.isEmpty()) {
@@ -465,8 +466,14 @@ class ContactsAdapter(
                 }
             }
 
-            if (!showMaskedPhoneNoAvatar && !activity.isDestroyed) {
-                SimpleContactsHelper(root.context).loadContactImage(contact.photoUri, itemContactImage, contact.getDisplayName())
+            // 修改时间：2026-10-10 17:51:54 — 搜索/列表圆标统一同字同色
+            if (!activity.isDestroyed) {
+                ContactLetterIconHelper.loadContactImage(
+                    root.context,
+                    contact.photoUri,
+                    itemContactImage,
+                    contact.getDisplayName()
+                )
             }
         }
     }

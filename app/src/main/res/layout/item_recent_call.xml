@@ -11,17 +11,17 @@
     android:paddingBottom="@dimen/medium_margin">
 
     <!--
-      修改时间：2026-10-10 17:12:58（本机）
-      修改原因：通话记录隐藏姓氏圆标以增加行宽；姓名后右侧显示脱敏号码（前3+**+后4）。
-      功能说明：头像 GONE；姓名约束到父布局左侧；新增 item_recents_masked_number 靠右对齐。
+      修改时间：2026-10-10 17:51:54（本机）
+      修改原因：恢复姓氏圆标；颜色同字同色（见 ContactLetterIconHelper）；保留右侧脱敏号码。
     -->
     <ImageView
         android:id="@+id/item_recents_image"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="@dimen/normal_icon_size"
+        android:layout_height="@dimen/normal_icon_size"
         android:layout_marginStart="@dimen/normal_margin"
+        android:layout_marginEnd="@dimen/small_margin"
+        android:padding="@dimen/small_margin"
         android:src="@drawable/ic_person_vector"
-        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -31,7 +31,7 @@
         android:id="@+id/item_recents_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/normal_margin"
+        android:layout_marginStart="@dimen/small_margin"
         android:layout_marginEnd="@dimen/small_margin"
         android:ellipsize="marquee"
         android:focusable="false"
@@ -43,7 +43,7 @@
         android:textSize="@dimen/bigger_text_size"
         app:layout_constraintBottom_toTopOf="@id/item_recents_date_time"
         app:layout_constraintEnd_toStartOf="@+id/item_recents_masked_number"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/item_recents_image"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="spread_inside"
         tools:text="John Doe" />
@@ -66,14 +66,14 @@
         android:id="@+id/item_recents_sim_image"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="@dimen/normal_margin"
+        android:layout_marginStart="@dimen/tiny_margin"
         android:alpha="0.6"
         android:padding="@dimen/tiny_margin"
         android:src="@drawable/ic_sim_vector"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@+id/item_recents_date_time"
         app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/item_recents_image"
         app:layout_constraintTop_toTopOf="@id/item_recents_date_time"
         tools:visibility="visible" />
 
